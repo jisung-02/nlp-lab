@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 import secrets
 from hmac import compare_digest
+from typing import Any
 
 from fastapi import Request
 from pydantic import ValidationError
@@ -15,6 +20,34 @@ from app.schemas.auth import AdminLoginInput, CsrfInput
 
 SESSION_ADMIN_USER_ID_KEY = "admin_user_id"
 SESSION_CSRF_TOKEN_KEY = "csrf_token"
+
+
+def decode_session_cookie(secret_key: str, raw_cookie: str | None) -> dict[str, Any]:
+    """Decode and validate signed session cookie payload."""
+
+    if raw_cookie is None or "." not in raw_cookie:
+        return {}
+    encoded_payload, signature = raw_cookie.rsplit(".", 1)
+    if not compare_digest(_sign_payload(secret_key, encoded_payload), signature):
+        return {}
+    try:
+        padding = "=" * (-len(encoded_payload) % 4)
+        payload = base64.urlsafe_b64decode(f"{encoded_payload}{padding}".encode())
+        data = json.loads(payload.decode("utf-8"))
+    except (ValueError, json.JSONDecodeError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {str(key): value for key, value in data.items()}
+
+
+def encode_session_cookie(secret_key: str, session_data: dict[str, Any]) -> str:
+    """Encode session dict and sign it for cookie storage."""
+
+    raw_payload = json.dumps(session_data, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    encoded_payload = base64.urlsafe_b64encode(raw_payload).decode("utf-8").rstrip("=")
+    signature = _sign_payload(secret_key, encoded_payload)
+    return f"{encoded_payload}.{signature}"
 
 
 def parse_login_input(username: str, password: str, csrf_token: str) -> AdminLoginInput | None:
@@ -95,3 +128,8 @@ def validate_csrf_token(request: Request, csrf_token: str) -> bool:
     if not isinstance(session_token, str) or not session_token:
         return False
     return compare_digest(session_token, validated_input.csrf_token)
+
+
+def _sign_payload(secret_key: str, payload: str) -> str:
+    digest = hmac.new(secret_key.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256)
+    return digest.hexdigest()
