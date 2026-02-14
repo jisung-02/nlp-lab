@@ -1,30 +1,28 @@
 {% extends "base.html" %}
-{% block title %}Projects | NLP Lab{% endblock %}
+{% block title %}연구 분야 | NLP Lab{% endblock %}
 {% block body_class %}public-page public-projects{% endblock %}
 {% block content %}
-<section class="section">
-  <h1>Projects</h1>
-  <p class="filter-tabs">
-    <a href="/projects"{% if selected_status == "all" %} aria-current="page"{% endif %}>All</a>
-    <a href="/projects?status=ongoing"{% if selected_status == "ongoing" %} aria-current="page"{% endif %}>Ongoing</a>
-    <a href="/projects?status=completed"{% if selected_status == "completed" %} aria-current="page"{% endif %}>Completed</a>
-  </p>
-
-  {% if projects %}
-  <ul class="card-grid card-grid--two">
-    {% for project in projects %}
-    <li class="card">
-      <h2><a href="/projects/{{ project.slug }}">{{ project.title }}</a></h2>
-      <p class="text-muted">{{ project.summary }}</p>
-      <p class="meta-line">
-        Status:
-        <span class="status-badge">{{ project.status.value }}</span>
-      </p>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="empty-state">No projects found.</p>
-  {% endif %}
+<section class="page-hero">
+  <div class="container">
+    <p class="eyebrow">연구 분야</p>
+    <h1>연구 분야</h1>
+    <p class="lead">자연어 이해, 검색, 대화 시스템을 중심으로 연구합니다.</p>
+  </div>
+</section>
+<section class="page-content">
+  <div class="container">
+    {% if projects %}
+    <div class="list-grid">
+      {% for project in projects %}
+      <article class="list-card">
+        <h3><a href="/projects/{{ project.slug }}">{{ project.title }}</a></h3>
+        <p>{{ project.summary }}</p>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-state">조회된 프로젝트가 없습니다.</p>
+    {% endif %}
+  </div>
 </section>
 {% endblock %}

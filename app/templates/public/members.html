@@ -1,38 +1,46 @@
 {% extends "base.html" %}
-{% block title %}Members | NLP Lab{% endblock %}
+{% block title %}구성원 | NLP Lab{% endblock %}
 {% block body_class %}public-page public-members{% endblock %}
 {% block content %}
-<section class="section">
-  <h1>Members</h1>
-  {% if grouped_members %}
-    {% for role, role_members in grouped_members %}
-    <article class="section role-group">
-      <h2>{{ role.value|capitalize }}</h2>
-      <ul class="card-grid card-grid--three">
-        {% for member in role_members %}
-        <li class="card member-card">
-          <div class="member-avatar">
-            {% if member.photo_url %}
-            <img src="{{ member.photo_url }}" alt="{{ member.name }} photo" loading="lazy" />
-            {% else %}
-            <span>{{ member.name[:1] }}</span>
-            {% endif %}
-          </div>
-          <div class="member-card__body">
-            <strong>{{ member.name }}</strong>
-            <p class="meta-line">{{ role.value|capitalize }}</p>
-            <p class="meta-line">{{ member.email }}</p>
-            {% if member.bio %}
-            <p class="text-muted">{{ member.bio }}</p>
-            {% endif %}
-          </div>
-        </li>
-        {% endfor %}
-      </ul>
-    </article>
-    {% endfor %}
-  {% else %}
-  <p class="empty-state">No members registered.</p>
-  {% endif %}
+<section class="page-hero">
+  <div class="container">
+    <p class="eyebrow">구성원</p>
+    <h1>구성원</h1>
+    <p class="lead">연구실 구성원 소개</p>
+  </div>
+</section>
+<section class="page-content">
+  <div class="container">
+    {% if members %}
+    <div class="member-grid large">
+      {% for member in members %}
+      <article class="member-card">
+        <div class="member-photo-wrap">
+          {% if member.photo_url %}
+          <img class="member-photo" src="{{ member.photo_url }}" alt="{{ member.name }}" loading="lazy" />
+          {% else %}
+          <img
+            class="member-photo"
+            src="{{ url_for('static', path='images/default-profile.svg') }}"
+            alt="{{ member.name }}"
+            loading="lazy"
+          />
+          {% endif %}
+        </div>
+        <div>
+          <h3>{{ member.name }}</h3>
+          <p class="meta">{{ member.role.value | replace('_', ' ') | title }}</p>
+          <p class="meta">{{ member.email }}</p>
+          {% if member.bio %}
+          <p>{{ member.bio }}</p>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-state">등록된 구성원이 없습니다.</p>
+    {% endif %}
+  </div>
 </section>
 {% endblock %}

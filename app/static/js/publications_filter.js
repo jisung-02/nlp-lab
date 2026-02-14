@@ -1,21 +1,35 @@
-const initPublicationsFilter = () => {
-  const form = document.querySelector("[data-publications-filter]");
-  if (!(form instanceof HTMLFormElement)) {
+const initRevealSections = () => {
+  const revealItems = document.querySelectorAll(".section, .page-hero, .page-content");
+  if (revealItems.length === 0) {
     return;
   }
 
-  const yearSelect = form.querySelector("[data-year-select]");
-  if (!(yearSelect instanceof HTMLSelectElement)) {
+  if (!("IntersectionObserver" in window)) {
+    revealItems.forEach((item) => item.classList.add("is-visible"));
     return;
   }
 
-  yearSelect.addEventListener("change", () => {
-    form.requestSubmit();
-  });
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.12 },
+  );
+
+  revealItems.forEach((item) => observer.observe(item));
+};
+
+const initPublicUi = () => {
+  initRevealSections();
 };
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initPublicationsFilter);
+  document.addEventListener("DOMContentLoaded", initPublicUi);
 } else {
-  initPublicationsFilter();
+  initPublicUi();
 }

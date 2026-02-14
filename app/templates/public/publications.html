@@ -1,40 +1,32 @@
 {% extends "base.html" %}
-{% block title %}Publications | NLP Lab{% endblock %}
+{% block title %}연구성과 | NLP Lab{% endblock %}
 {% block body_class %}public-page public-publications{% endblock %}
-{% block scripts %}
-<script src="{{ url_for('static', path='js/publications_filter.js') }}" defer></script>
-{% endblock %}
 {% block content %}
-<section class="section">
-  <h1>Publications</h1>
-
-  <form method="get" action="/publications" class="filter-bar" data-publications-filter>
-    <label for="year">Year</label>
-    <select id="year" name="year" data-year-select>
-      <option value="">All</option>
-      {% for year_value in years %}
-      <option value="{{ year_value }}"{% if selected_year == year_value %} selected{% endif %}>
-        {{ year_value }}
-      </option>
+<section class="page-hero">
+  <div class="container">
+    <p class="eyebrow">연구성과</p>
+    <h1>연구성과</h1>
+    <p class="lead">최근 연구 성과</p>
+  </div>
+</section>
+<section class="page-content">
+  <div class="container">
+    {% if publications %}
+    <div class="list-stack">
+      {% for publication in publications %}
+      <article class="stack-item">
+        <p class="meta">{{ publication.year }} · {{ publication.venue }}</p>
+        <h3>{{ publication.title }}</h3>
+        <p>{{ publication.authors }}</p>
+        {% if publication.link %}
+        <a class="text-link" href="{{ publication.link }}" target="_blank" rel="noopener noreferrer">Link</a>
+        {% endif %}
+      </article>
       {% endfor %}
-    </select>
-    <button type="submit" class="btn btn-secondary">Filter</button>
-  </form>
-
-  {% if publications %}
-  <ul class="card-grid card-grid--two">
-    {% for publication in publications %}
-    <li class="card publication-item">
-      <strong>{{ publication.title }}</strong>
-      <p class="meta-line">{{ publication.authors }} / {{ publication.venue }} / {{ publication.year }}</p>
-      {% if publication.link %}
-      <a href="{{ publication.link }}" target="_blank" rel="noopener noreferrer">Link</a>
-      {% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="empty-state">No publications found.</p>
-  {% endif %}
+    </div>
+    {% else %}
+    <p class="empty-state">조회된 논문이 없습니다.</p>
+    {% endif %}
+  </div>
 </section>
 {% endblock %}

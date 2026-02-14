@@ -1,88 +1,174 @@
 {% extends "base.html" %}
-{% block title %}Home | NLP Lab{% endblock %}
+{% block title %}경희대학교 NLP 연구실{% endblock %}
 {% block body_class %}public-page public-home{% endblock %}
 {% block content %}
-<section class="section hero">
-  <div class="hero-inner">
-    <div class="hero-copy">
+<section class="hero" id="top">
+  <div class="container hero-inner">
+    <div class="hero-text">
       <p class="eyebrow">Kyung Hee University</p>
-      <h1>NLP Lab</h1>
-      <p class="text-muted">
-        We build robust NLP systems for research and practical AI applications.
+      <h1>Language, Intelligence, and Retrieval</h1>
+      <p class="lead">
+        경희대학교 자연어처리 연구실은 언어 이해, 질의응답, 대화, 정보검색 등
+        사람 중심의 언어 기술을 연구합니다.
       </p>
       <div class="hero-actions">
-        <a class="btn" href="/projects">View Projects</a>
-        <a class="btn btn-secondary" href="/contact">Contact</a>
+        <a class="btn primary" href="#research">연구 소개 보기</a>
+        <a class="btn ghost" href="#contact">연락처</a>
       </div>
     </div>
-    <aside class="card hero-panel">
-      <h2>Research Focus</h2>
-      <ul class="hero-list">
-        <li>Language Modeling and Reasoning</li>
-        <li>Multimodal NLP</li>
-        <li>Applied AI for Real-World Tasks</li>
-      </ul>
-    </aside>
+    <div class="hero-visual">
+      <img src="{{ url_for('static', path='images/hero.jpg') }}" alt="Lab view" loading="lazy" />
+    </div>
   </div>
 </section>
 
-<section class="section section-intro">
-  <article class="card">
-    <h2>About Our Lab</h2>
-    <p class="text-muted">
-      We explore reliable and data-driven natural language technologies, and share
-      our outcomes through publications, projects, and open collaboration.
-    </p>
-  </article>
-</section>
-
-<section class="section">
-  <h2>Latest Projects</h2>
-  {% if projects %}
-  <ul class="card-grid card-grid--three">
-    {% for project in projects %}
-    <li class="card">
-      <h3><a href="/projects/{{ project.slug }}">{{ project.title }}</a></h3>
-      <p class="meta-line">
-        Status:
-        <span class="status-badge">{{ project.status.value }}</span>
+<section class="section" id="about">
+  <div class="container section-grid">
+    <div class="section-title">
+      <p class="eyebrow">Lab Overview</p>
+      <h2>연구실 소개</h2>
+    </div>
+    <div class="section-body prose">
+      <p>
+        경희대학교 자연어처리 연구실은 <strong>언어 이해, 질의응답, 대화 처리, 정보검색, 텍스트 마이닝</strong>을
+        연구합니다.
       </p>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="empty-state">No projects yet.</p>
-  {% endif %}
+      <p>
+        데이터 중심 방법론을 기반으로 실제 환경에서 <strong>신뢰 가능한 언어 모델과 검색 시스템</strong>을
+        구축하는 것을 목표로 합니다.
+      </p>
+    </div>
+  </div>
 </section>
 
-<section class="section">
-  <h2>Latest Publications</h2>
-  {% if publications %}
-  <ul class="card-grid card-grid--two">
-    {% for publication in publications %}
-    <li class="card">
-      <p class="meta-line">{{ publication.year }}</p>
-      <h3>{{ publication.title }}</h3>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="empty-state">No publications yet.</p>
-  {% endif %}
+<section class="section alt" id="research">
+  <div class="container section-grid">
+    <div class="section-title">
+      <p class="eyebrow">Focus Areas</p>
+      <h2>연구 분야</h2>
+    </div>
+    <div class="section-body">
+      {% if projects %}
+      <div class="feature-grid">
+        {% for project in projects %}
+        <article class="feature-card">
+          <h3><a href="/projects/{{ project.slug }}">{{ project.title }}</a></h3>
+          <p>{{ project.summary }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      <div class="section-cta">
+        <a class="text-link" href="/projects">전체 연구 보기</a>
+      </div>
+      {% else %}
+      <p class="empty-state">등록된 프로젝트가 없습니다.</p>
+      {% endif %}
+    </div>
+  </div>
 </section>
 
-<section class="section">
-  <h2>Latest Posts</h2>
-  {% if posts %}
-  <ul class="card-grid card-grid--three">
-    {% for post in posts %}
-    <li class="card">
-      <h3>{{ post.title }}</h3>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="empty-state">No posts yet.</p>
-  {% endif %}
+<section class="section" id="publications">
+  <div class="container section-grid">
+    <div class="section-title">
+      <p class="eyebrow">Recent Work</p>
+      <h2>연구성과</h2>
+    </div>
+    <div class="section-body">
+      {% if publications %}
+      <div class="list-stack">
+        {% for publication in publications %}
+        <article class="stack-item">
+          <p class="meta">{{ publication.year }} · {{ publication.venue }}</p>
+          <h3>{{ publication.title }}</h3>
+          <p>{{ publication.authors }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      <div class="section-cta">
+        <a class="text-link" href="/publications">전체 논문 보기</a>
+      </div>
+      {% else %}
+      <p class="empty-state">등록된 논문이 없습니다.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="section alt" id="members">
+  <div class="container section-grid">
+    <div class="section-title">
+      <p class="eyebrow">People</p>
+      <h2>구성원</h2>
+    </div>
+    <div class="section-body">
+      {% if members %}
+      <div class="member-grid">
+        {% for member in members %}
+        <article class="member-card">
+          <div class="member-photo-wrap">
+            {% if member.photo_url %}
+            <img class="member-photo" src="{{ member.photo_url }}" alt="{{ member.name }}" loading="lazy" />
+            {% else %}
+            <img
+              class="member-photo"
+              src="{{ url_for('static', path='images/default-profile.svg') }}"
+              alt="{{ member.name }}"
+              loading="lazy"
+            />
+            {% endif %}
+          </div>
+          <div>
+            <h3>{{ member.name }}</h3>
+            <p class="meta">{{ member.role.value | replace('_', ' ') | title }}</p>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      <div class="section-cta">
+        <a class="text-link" href="/members">전체 구성원 보기</a>
+      </div>
+      {% else %}
+      <p class="empty-state">등록된 구성원이 없습니다.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="section" id="news">
+  <div class="container section-grid">
+    <div class="section-title">
+      <p class="eyebrow">News</p>
+      <h2>소식</h2>
+    </div>
+    <div class="section-body">
+      {% if posts %}
+      <div class="list-stack">
+        {% for post in posts %}
+        <article class="stack-item">
+          <p class="meta">{{ post.created_at.date() }}</p>
+          <h3>{{ post.title }}</h3>
+          <p>{{ post.content[:120] }}{% if post.content | length > 120 %}...{% endif %}</p>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="empty-state">등록된 소식이 없습니다.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="section alt" id="contact">
+  <div class="container section-grid">
+    <div class="section-title">
+      <p class="eyebrow">Contact</p>
+      <h2>연락처</h2>
+    </div>
+    <div class="section-body prose">
+      <p><strong>이메일</strong>: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
+      <p><strong>주소</strong>: {{ contact_address }}</p>
+      <p><a class="text-link" href="/contact">상세 연락처 보기</a></p>
+    </div>
+  </div>
 </section>
 {% endblock %}

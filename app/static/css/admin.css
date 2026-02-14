@@ -2,6 +2,10 @@
   display: none;
 }
 
+.admin-page .header-controls {
+  display: none;
+}
+
 .admin-page .site-header__inner {
   justify-content: flex-start;
 }

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -10,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, col, select
 
 from app.core.config import get_settings
-from app.core.constants import MemberRole, ProjectStatus
+from app.core.constants import ProjectStatus
 from app.db.session import get_session
 from app.models.member import Member
 from app.models.post import Post
@@ -39,6 +38,12 @@ def home(
         .order_by(col(Post.created_at).desc())
         .limit(3)
     ).all()
+    featured_members = session.exec(
+        select(Member)
+        .order_by(col(Member.display_order).asc(), col(Member.created_at).asc())
+        .limit(8)
+    ).all()
+    settings = get_settings()
     templates = cast(Jinja2Templates, request.app.state.templates)
     return templates.TemplateResponse(
         request,
@@ -48,6 +53,9 @@ def home(
             "projects": latest_projects,
             "publications": latest_publications,
             "posts": latest_posts,
+            "members": featured_members,
+            "contact_email": settings.contact_email,
+            "contact_address": settings.contact_address,
         },
     )
 
@@ -66,7 +74,7 @@ def members_page(
         "public/members.html",
         {
             "request": request,
-            "grouped_members": _group_members_by_role(members),
+            "members": members,
         },
     )
 
@@ -165,10 +173,3 @@ def contact_page(request: Request):
             "contact_map_url": settings.contact_map_url,
         },
     )
-
-
-def _group_members_by_role(members: Sequence[Member]) -> list[tuple[MemberRole, list[Member]]]:
-    grouped: dict[MemberRole, list[Member]] = {role: [] for role in MemberRole}
-    for member in members:
-        grouped[member.role].append(member)
-    return [(role, grouped[role]) for role in MemberRole if grouped[role]]

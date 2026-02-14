@@ -1,11 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Contact | NLP Lab{% endblock %}
+{% block title %}연락처 | NLP Lab{% endblock %}
 {% block body_class %}public-page public-contact{% endblock %}
 {% block content %}
-<section class="section card">
-  <h1>Contact</h1>
-  <p class="meta-line">Email: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
-  <p class="meta-line">Address: {{ contact_address }}</p>
-  <p><a href="{{ contact_map_url }}" target="_blank" rel="noopener noreferrer">Open map</a></p>
+<section class="page-hero">
+  <div class="container">
+    <p class="eyebrow">Contact</p>
+    <h1>연락처</h1>
+  </div>
+</section>
+<section class="page-content">
+  <div class="container prose">
+    <p><strong>주소</strong>: {{ contact_address }}</p>
+    <p><strong>이메일</strong>: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
+    <p>
+      <a class="text-link" href="{{ contact_map_url }}" target="_blank" rel="noopener noreferrer">지도에서 보기</a>
+    </p>
+    <p>방문 전 이메일로 미리 연락 부탁드립니다.</p>
+  </div>
 </section>
 {% endblock %}
