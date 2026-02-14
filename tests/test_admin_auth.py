@@ -261,6 +261,44 @@ def test_login_success_allows_dashboard_and_logout_blocks_later_access(app_and_e
     assert _header_value(headers, "location") == "/admin/login"
 
 
+def test_authenticated_admin_pages_render(app_and_engine):
+    app, _ = app_and_engine
+    cookie_jar: dict[str, str] = {}
+
+    status_code, headers, login_body = _request(app, "GET", "/admin/login")
+    _update_cookie_jar(cookie_jar, headers)
+    csrf_token = _extract_csrf_token(login_body)
+
+    assert status_code == 200
+
+    status_code, headers, _ = _request(
+        app,
+        "POST",
+        "/admin/login",
+        form={
+            "username": "admin",
+            "password": "test-password",
+            "csrf_token": csrf_token,
+        },
+        cookies=cookie_jar,
+    )
+    _update_cookie_jar(cookie_jar, headers)
+
+    assert status_code == 303
+    assert _header_value(headers, "location") == "/admin"
+
+    for route in [
+        "/admin",
+        "/admin/members",
+        "/admin/projects",
+        "/admin/publications",
+        "/admin/posts",
+    ]:
+        status_code, headers, _ = _request(app, "GET", route, cookies=cookie_jar)
+        _update_cookie_jar(cookie_jar, headers)
+        assert status_code == 200
+
+
 def test_login_rejects_csrf_mismatch(app_and_engine):
     app, _ = app_and_engine
     cookie_jar: dict[str, str] = {}
