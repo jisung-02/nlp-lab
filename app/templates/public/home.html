@@ -1,4 +1,50 @@
 {% extends "base.html" %}
+{% block title %}Home | NLP Lab{% endblock %}
 {% block content %}
-<h1>Home</h1>
+<section>
+  <h1>NLP Lab</h1>
+  <p>Natural language processing and AI research.</p>
+</section>
+
+<section>
+  <h2>Latest Projects</h2>
+  {% if projects %}
+  <ul>
+    {% for project in projects %}
+    <li>
+      <a href="/projects/{{ project.slug }}">{{ project.title }}</a>
+      <span>({{ project.status.value }})</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No projects yet.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Latest Publications</h2>
+  {% if publications %}
+  <ul>
+    {% for publication in publications %}
+    <li>{{ publication.year }} - {{ publication.title }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No publications yet.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Latest Posts</h2>
+  {% if posts %}
+  <ul>
+    {% for post in posts %}
+    <li>{{ post.title }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No posts yet.</p>
+  {% endif %}
+</section>
 {% endblock %}

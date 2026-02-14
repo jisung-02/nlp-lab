@@ -1,4 +1,25 @@
 {% extends "base.html" %}
+{% block title %}{{ project.title }} | NLP Lab{% endblock %}
 {% block content %}
-<h1>Project Detail</h1>
+<article>
+  <h1>{{ project.title }}</h1>
+  <p>{{ project.summary }}</p>
+  <p>{{ project.description }}</p>
+  <p>Status: {{ project.status.value }}</p>
+  <p>Period: {{ project.start_date }}{% if project.end_date %} - {{ project.end_date }}{% endif %}</p>
+</article>
+
+<section>
+  <h2>Related Publications</h2>
+  {% if publications %}
+  <ul>
+    {% for publication in publications %}
+    <li>{{ publication.year }} - {{ publication.title }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No related publications.</p>
+  {% endif %}
+  <p><a href="/publications">See all publications</a></p>
+</section>
 {% endblock %}

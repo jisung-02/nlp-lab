@@ -3,9 +3,24 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>NLP Lab</title>
+    <title>{% block title %}NLP Lab{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/reset.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', path='css/common.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', path='css/public.css') }}" />
   </head>
   <body>
-    {% block content %}{% endblock %}
+    <header>
+      <nav>
+        <a href="/">NLP Lab</a>
+        <a href="/members">Members</a>
+        <a href="/projects">Projects</a>
+        <a href="/publications">Publications</a>
+        <a href="/contact">Contact</a>
+      </nav>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+    <footer>
+      <small>Copyright NLP Lab</small>
+    </footer>
   </body>
 </html>

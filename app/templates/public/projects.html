@@ -1,4 +1,26 @@
 {% extends "base.html" %}
+{% block title %}Projects | NLP Lab{% endblock %}
 {% block content %}
-<h1>Projects</h1>
+<section>
+  <h1>Projects</h1>
+  <p>
+    <a href="/projects"{% if selected_status == "all" %} aria-current="page"{% endif %}>All</a>
+    <a href="/projects?status=ongoing"{% if selected_status == "ongoing" %} aria-current="page"{% endif %}>Ongoing</a>
+    <a href="/projects?status=completed"{% if selected_status == "completed" %} aria-current="page"{% endif %}>Completed</a>
+  </p>
+
+  {% if projects %}
+  <ul>
+    {% for project in projects %}
+    <li>
+      <h2><a href="/projects/{{ project.slug }}">{{ project.title }}</a></h2>
+      <p>{{ project.summary }}</p>
+      <p>Status: {{ project.status.value }}</p>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No projects found.</p>
+  {% endif %}
+</section>
 {% endblock %}

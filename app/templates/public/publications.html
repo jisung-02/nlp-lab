@@ -1,4 +1,36 @@
 {% extends "base.html" %}
+{% block title %}Publications | NLP Lab{% endblock %}
 {% block content %}
-<h1>Publications</h1>
+<section>
+  <h1>Publications</h1>
+
+  <form method="get" action="/publications">
+    <label for="year">Year</label>
+    <select id="year" name="year">
+      <option value="">All</option>
+      {% for year_value in years %}
+      <option value="{{ year_value }}"{% if selected_year == year_value %} selected{% endif %}>
+        {{ year_value }}
+      </option>
+      {% endfor %}
+    </select>
+    <button type="submit">Filter</button>
+  </form>
+
+  {% if publications %}
+  <ul>
+    {% for publication in publications %}
+    <li>
+      <strong>{{ publication.title }}</strong>
+      <span>{{ publication.authors }} / {{ publication.venue }} / {{ publication.year }}</span>
+      {% if publication.link %}
+      <a href="{{ publication.link }}" target="_blank" rel="noopener noreferrer">Link</a>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No publications found.</p>
+  {% endif %}
+</section>
 {% endblock %}

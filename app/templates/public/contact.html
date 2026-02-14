@@ -1,4 +1,10 @@
 {% extends "base.html" %}
+{% block title %}Contact | NLP Lab{% endblock %}
 {% block content %}
-<h1>Contact</h1>
+<section>
+  <h1>Contact</h1>
+  <p>Email: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
+  <p>Address: {{ contact_address }}</p>
+  <p><a href="{{ contact_map_url }}" target="_blank" rel="noopener noreferrer">Open map</a></p>
+</section>
 {% endblock %}
