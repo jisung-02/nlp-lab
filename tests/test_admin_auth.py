@@ -1,0 +1,1 @@
+"""Admin auth tests placeholder."""
