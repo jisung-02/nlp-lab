@@ -16,31 +16,6 @@ from app.services.auth_service import get_or_create_csrf_token, validate_csrf_to
 router = APIRouter(prefix="/admin/posts")
 
 
-def _templates(request: Request) -> Jinja2Templates:
-    return cast(Jinja2Templates, request.app.state.templates)
-
-
-def _render_posts_page(
-    request: Request,
-    session: Session,
-    *,
-    error_message: str | None = None,
-    status_code: int = status.HTTP_200_OK,
-):
-    csrf_token = get_or_create_csrf_token(request)
-    return _templates(request).TemplateResponse(
-        request,
-        "admin/posts.html",
-        {
-            "request": request,
-            "csrf_token": csrf_token,
-            "error_message": error_message,
-            "posts": post_service.list_posts(session),
-        },
-        status_code=status_code,
-    )
-
-
 @router.get("")
 def posts_page(request: Request, session: Annotated[Session, Depends(get_session)]):
     return _render_posts_page(request, session)
@@ -145,3 +120,25 @@ def delete_post(
         )
 
     return RedirectResponse(url="/admin/posts", status_code=status.HTTP_303_SEE_OTHER)
+
+
+def _render_posts_page(
+    request: Request,
+    session: Session,
+    *,
+    error_message: str | None = None,
+    status_code: int = status.HTTP_200_OK,
+):
+    csrf_token = get_or_create_csrf_token(request)
+    templates = cast(Jinja2Templates, request.app.state.templates)
+    return templates.TemplateResponse(
+        request,
+        "admin/posts.html",
+        {
+            "request": request,
+            "csrf_token": csrf_token,
+            "error_message": error_message,
+            "posts": post_service.list_posts(session),
+        },
+        status_code=status_code,
+    )

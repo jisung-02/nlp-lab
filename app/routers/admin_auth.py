@@ -27,24 +27,6 @@ from app.services.auth_service import (
 router = APIRouter(prefix="/admin")
 
 
-def _templates(request: Request) -> Jinja2Templates:
-    return cast(Jinja2Templates, request.app.state.templates)
-
-
-def _render_login_page(request: Request, error_message: str | None = None, status_code: int = 200):
-    csrf_token = get_or_create_csrf_token(request)
-    return _templates(request).TemplateResponse(
-        request,
-        "admin/login.html",
-        {
-            "request": request,
-            "csrf_token": csrf_token,
-            "error_message": error_message,
-        },
-        status_code=status_code,
-    )
-
-
 @router.get("/login")
 def login_page(request: Request, session: Annotated[Session, Depends(get_session)]):
     admin_user = get_authenticated_admin(request, session)
@@ -103,7 +85,8 @@ def dashboard(request: Request, session: Annotated[Session, Depends(get_session)
     project_count = len(session.exec(select(Project.id)).all())
     publication_count = len(session.exec(select(Publication.id)).all())
     post_count = len(session.exec(select(Post.id)).all())
-    return _templates(request).TemplateResponse(
+    templates = cast(Jinja2Templates, request.app.state.templates)
+    return templates.TemplateResponse(
         request,
         "admin/dashboard.html",
         {
@@ -114,4 +97,23 @@ def dashboard(request: Request, session: Annotated[Session, Depends(get_session)
             "publication_count": publication_count,
             "post_count": post_count,
         },
+    )
+
+
+def _render_login_page(
+    request: Request,
+    error_message: str | None = None,
+    status_code: int = status.HTTP_200_OK,
+):
+    csrf_token = get_or_create_csrf_token(request)
+    templates = cast(Jinja2Templates, request.app.state.templates)
+    return templates.TemplateResponse(
+        request,
+        "admin/login.html",
+        {
+            "request": request,
+            "csrf_token": csrf_token,
+            "error_message": error_message,
+        },
+        status_code=status_code,
     )

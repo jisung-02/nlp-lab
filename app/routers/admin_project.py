@@ -17,32 +17,6 @@ from app.services.auth_service import get_or_create_csrf_token, validate_csrf_to
 router = APIRouter(prefix="/admin/projects")
 
 
-def _templates(request: Request) -> Jinja2Templates:
-    return cast(Jinja2Templates, request.app.state.templates)
-
-
-def _render_projects_page(
-    request: Request,
-    session: Session,
-    *,
-    error_message: str | None = None,
-    status_code: int = status.HTTP_200_OK,
-):
-    csrf_token = get_or_create_csrf_token(request)
-    return _templates(request).TemplateResponse(
-        request,
-        "admin/projects.html",
-        {
-            "request": request,
-            "csrf_token": csrf_token,
-            "error_message": error_message,
-            "projects": project_service.list_projects(session),
-            "statuses": list(ProjectStatus),
-        },
-        status_code=status_code,
-    )
-
-
 @router.get("")
 def projects_page(request: Request, session: Annotated[Session, Depends(get_session)]):
     return _render_projects_page(request, session)
@@ -159,3 +133,26 @@ def delete_project(
         )
 
     return RedirectResponse(url="/admin/projects", status_code=status.HTTP_303_SEE_OTHER)
+
+
+def _render_projects_page(
+    request: Request,
+    session: Session,
+    *,
+    error_message: str | None = None,
+    status_code: int = status.HTTP_200_OK,
+):
+    csrf_token = get_or_create_csrf_token(request)
+    templates = cast(Jinja2Templates, request.app.state.templates)
+    return templates.TemplateResponse(
+        request,
+        "admin/projects.html",
+        {
+            "request": request,
+            "csrf_token": csrf_token,
+            "error_message": error_message,
+            "projects": project_service.list_projects(session),
+            "statuses": list(ProjectStatus),
+        },
+        status_code=status_code,
+    )

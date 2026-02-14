@@ -20,17 +20,6 @@ from app.models.publication import Publication
 router = APIRouter()
 
 
-def _templates(request: Request) -> Jinja2Templates:
-    return cast(Jinja2Templates, request.app.state.templates)
-
-
-def _group_members_by_role(members: Sequence[Member]) -> list[tuple[MemberRole, list[Member]]]:
-    grouped: dict[MemberRole, list[Member]] = {role: [] for role in MemberRole}
-    for member in members:
-        grouped[member.role].append(member)
-    return [(role, grouped[role]) for role in MemberRole if grouped[role]]
-
-
 @router.get("/")
 def home(
     request: Request,
@@ -50,7 +39,8 @@ def home(
         .order_by(col(Post.created_at).desc())
         .limit(3)
     ).all()
-    return _templates(request).TemplateResponse(
+    templates = cast(Jinja2Templates, request.app.state.templates)
+    return templates.TemplateResponse(
         request,
         "public/home.html",
         {
@@ -70,7 +60,8 @@ def members_page(
     members = session.exec(
         select(Member).order_by(col(Member.display_order).asc(), col(Member.created_at).asc())
     ).all()
-    return _templates(request).TemplateResponse(
+    templates = cast(Jinja2Templates, request.app.state.templates)
+    return templates.TemplateResponse(
         request,
         "public/members.html",
         {
@@ -90,7 +81,8 @@ def projects_page(
     if status is not None:
         stmt = stmt.where(col(Project.status) == status)
     projects = session.exec(stmt.order_by(col(Project.created_at).desc())).all()
-    return _templates(request).TemplateResponse(
+    templates = cast(Jinja2Templates, request.app.state.templates)
+    return templates.TemplateResponse(
         request,
         "public/projects.html",
         {
@@ -117,7 +109,8 @@ def project_detail_page(
         .order_by(col(Publication.year).desc(), col(Publication.id).desc())
     ).all()
 
-    return _templates(request).TemplateResponse(
+    templates = cast(Jinja2Templates, request.app.state.templates)
+    return templates.TemplateResponse(
         request,
         "public/project_detail.html",
         {
@@ -145,7 +138,8 @@ def publications_page(
         select(col(Publication.year)).distinct().order_by(col(Publication.year).desc())
     ).all()
 
-    return _templates(request).TemplateResponse(
+    templates = cast(Jinja2Templates, request.app.state.templates)
+    return templates.TemplateResponse(
         request,
         "public/publications.html",
         {
@@ -160,7 +154,8 @@ def publications_page(
 @router.get("/contact")
 def contact_page(request: Request):
     settings = get_settings()
-    return _templates(request).TemplateResponse(
+    templates = cast(Jinja2Templates, request.app.state.templates)
+    return templates.TemplateResponse(
         request,
         "public/contact.html",
         {
@@ -170,3 +165,10 @@ def contact_page(request: Request):
             "contact_map_url": settings.contact_map_url,
         },
     )
+
+
+def _group_members_by_role(members: Sequence[Member]) -> list[tuple[MemberRole, list[Member]]]:
+    grouped: dict[MemberRole, list[Member]] = {role: [] for role in MemberRole}
+    for member in members:
+        grouped[member.role].append(member)
+    return [(role, grouped[role]) for role in MemberRole if grouped[role]]

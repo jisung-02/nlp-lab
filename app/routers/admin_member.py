@@ -17,32 +17,6 @@ from app.services.auth_service import get_or_create_csrf_token, validate_csrf_to
 router = APIRouter(prefix="/admin/members")
 
 
-def _templates(request: Request) -> Jinja2Templates:
-    return cast(Jinja2Templates, request.app.state.templates)
-
-
-def _render_members_page(
-    request: Request,
-    session: Session,
-    *,
-    error_message: str | None = None,
-    status_code: int = status.HTTP_200_OK,
-):
-    csrf_token = get_or_create_csrf_token(request)
-    return _templates(request).TemplateResponse(
-        request,
-        "admin/members.html",
-        {
-            "request": request,
-            "csrf_token": csrf_token,
-            "error_message": error_message,
-            "members": member_service.list_members(session),
-            "roles": list(MemberRole),
-        },
-        status_code=status_code,
-    )
-
-
 @router.get("")
 def members_page(request: Request, session: Annotated[Session, Depends(get_session)]):
     return _render_members_page(request, session)
@@ -155,3 +129,26 @@ def delete_member(
         )
 
     return RedirectResponse(url="/admin/members", status_code=status.HTTP_303_SEE_OTHER)
+
+
+def _render_members_page(
+    request: Request,
+    session: Session,
+    *,
+    error_message: str | None = None,
+    status_code: int = status.HTTP_200_OK,
+):
+    csrf_token = get_or_create_csrf_token(request)
+    templates = cast(Jinja2Templates, request.app.state.templates)
+    return templates.TemplateResponse(
+        request,
+        "admin/members.html",
+        {
+            "request": request,
+            "csrf_token": csrf_token,
+            "error_message": error_message,
+            "members": member_service.list_members(session),
+            "roles": list(MemberRole),
+        },
+        status_code=status_code,
+    )
