@@ -1,27 +1,38 @@
 {% extends "base.html" %}
 {% block title %}Members | NLP Lab{% endblock %}
+{% block body_class %}public-page public-members{% endblock %}
 {% block content %}
-<section>
+<section class="section">
   <h1>Members</h1>
   {% if grouped_members %}
     {% for role, role_members in grouped_members %}
-    <article>
+    <article class="section role-group">
       <h2>{{ role.value|capitalize }}</h2>
-      <ul>
+      <ul class="card-grid card-grid--three">
         {% for member in role_members %}
-        <li>
-          <strong>{{ member.name }}</strong>
-          <span>{{ member.email }}</span>
-          {% if member.bio %}
-          <p>{{ member.bio }}</p>
-          {% endif %}
+        <li class="card member-card">
+          <div class="member-avatar">
+            {% if member.photo_url %}
+            <img src="{{ member.photo_url }}" alt="{{ member.name }} photo" loading="lazy" />
+            {% else %}
+            <span>{{ member.name[:1] }}</span>
+            {% endif %}
+          </div>
+          <div class="member-card__body">
+            <strong>{{ member.name }}</strong>
+            <p class="meta-line">{{ role.value|capitalize }}</p>
+            <p class="meta-line">{{ member.email }}</p>
+            {% if member.bio %}
+            <p class="text-muted">{{ member.bio }}</p>
+            {% endif %}
+          </div>
         </li>
         {% endfor %}
       </ul>
     </article>
     {% endfor %}
   {% else %}
-  <p>No members registered.</p>
+  <p class="empty-state">No members registered.</p>
   {% endif %}
 </section>
 {% endblock %}

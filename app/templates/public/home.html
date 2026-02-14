@@ -1,50 +1,88 @@
 {% extends "base.html" %}
 {% block title %}Home | NLP Lab{% endblock %}
+{% block body_class %}public-page public-home{% endblock %}
 {% block content %}
-<section>
-  <h1>NLP Lab</h1>
-  <p>Natural language processing and AI research.</p>
+<section class="section hero">
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <p class="eyebrow">Kyung Hee University</p>
+      <h1>NLP Lab</h1>
+      <p class="text-muted">
+        We build robust NLP systems for research and practical AI applications.
+      </p>
+      <div class="hero-actions">
+        <a class="btn" href="/projects">View Projects</a>
+        <a class="btn btn-secondary" href="/contact">Contact</a>
+      </div>
+    </div>
+    <aside class="card hero-panel">
+      <h2>Research Focus</h2>
+      <ul class="hero-list">
+        <li>Language Modeling and Reasoning</li>
+        <li>Multimodal NLP</li>
+        <li>Applied AI for Real-World Tasks</li>
+      </ul>
+    </aside>
+  </div>
 </section>
 
-<section>
+<section class="section section-intro">
+  <article class="card">
+    <h2>About Our Lab</h2>
+    <p class="text-muted">
+      We explore reliable and data-driven natural language technologies, and share
+      our outcomes through publications, projects, and open collaboration.
+    </p>
+  </article>
+</section>
+
+<section class="section">
   <h2>Latest Projects</h2>
   {% if projects %}
-  <ul>
+  <ul class="card-grid card-grid--three">
     {% for project in projects %}
-    <li>
-      <a href="/projects/{{ project.slug }}">{{ project.title }}</a>
-      <span>({{ project.status.value }})</span>
+    <li class="card">
+      <h3><a href="/projects/{{ project.slug }}">{{ project.title }}</a></h3>
+      <p class="meta-line">
+        Status:
+        <span class="status-badge">{{ project.status.value }}</span>
+      </p>
     </li>
     {% endfor %}
   </ul>
   {% else %}
-  <p>No projects yet.</p>
+  <p class="empty-state">No projects yet.</p>
   {% endif %}
 </section>
 
-<section>
+<section class="section">
   <h2>Latest Publications</h2>
   {% if publications %}
-  <ul>
+  <ul class="card-grid card-grid--two">
     {% for publication in publications %}
-    <li>{{ publication.year }} - {{ publication.title }}</li>
+    <li class="card">
+      <p class="meta-line">{{ publication.year }}</p>
+      <h3>{{ publication.title }}</h3>
+    </li>
     {% endfor %}
   </ul>
   {% else %}
-  <p>No publications yet.</p>
+  <p class="empty-state">No publications yet.</p>
   {% endif %}
 </section>
 
-<section>
+<section class="section">
   <h2>Latest Posts</h2>
   {% if posts %}
-  <ul>
+  <ul class="card-grid card-grid--three">
     {% for post in posts %}
-    <li>{{ post.title }}</li>
+    <li class="card">
+      <h3>{{ post.title }}</h3>
+    </li>
     {% endfor %}
   </ul>
   {% else %}
-  <p>No posts yet.</p>
+  <p class="empty-state">No posts yet.</p>
   {% endif %}
 </section>
 {% endblock %}

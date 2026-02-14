@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Contact | NLP Lab{% endblock %}
+{% block body_class %}public-page public-contact{% endblock %}
 {% block content %}
-<section>
+<section class="section card">
   <h1>Contact</h1>
-  <p>Email: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
-  <p>Address: {{ contact_address }}</p>
+  <p class="meta-line">Email: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
+  <p class="meta-line">Address: {{ contact_address }}</p>
   <p><a href="{{ contact_map_url }}" target="_blank" rel="noopener noreferrer">Open map</a></p>
 </section>
 {% endblock %}

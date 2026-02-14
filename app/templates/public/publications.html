@@ -1,12 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Publications | NLP Lab{% endblock %}
+{% block body_class %}public-page public-publications{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', path='js/publications_filter.js') }}" defer></script>
+{% endblock %}
 {% block content %}
-<section>
+<section class="section">
   <h1>Publications</h1>
 
-  <form method="get" action="/publications">
+  <form method="get" action="/publications" class="filter-bar" data-publications-filter>
     <label for="year">Year</label>
-    <select id="year" name="year">
+    <select id="year" name="year" data-year-select>
       <option value="">All</option>
       {% for year_value in years %}
       <option value="{{ year_value }}"{% if selected_year == year_value %} selected{% endif %}>
@@ -14,15 +18,15 @@
       </option>
       {% endfor %}
     </select>
-    <button type="submit">Filter</button>
+    <button type="submit" class="btn btn-secondary">Filter</button>
   </form>
 
   {% if publications %}
-  <ul>
+  <ul class="card-grid card-grid--two">
     {% for publication in publications %}
-    <li>
+    <li class="card publication-item">
       <strong>{{ publication.title }}</strong>
-      <span>{{ publication.authors }} / {{ publication.venue }} / {{ publication.year }}</span>
+      <p class="meta-line">{{ publication.authors }} / {{ publication.venue }} / {{ publication.year }}</p>
       {% if publication.link %}
       <a href="{{ publication.link }}" target="_blank" rel="noopener noreferrer">Link</a>
       {% endif %}
@@ -30,7 +34,7 @@
     {% endfor %}
   </ul>
   {% else %}
-  <p>No publications found.</p>
+  <p class="empty-state">No publications found.</p>
   {% endif %}
 </section>
 {% endblock %}

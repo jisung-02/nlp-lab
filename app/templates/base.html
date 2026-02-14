@@ -6,21 +6,38 @@
     <title>{% block title %}NLP Lab{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/reset.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', path='css/common.css') }}" />
+    {% block extra_head %}
     <link rel="stylesheet" href="{{ url_for('static', path='css/public.css') }}" />
+    {% endblock %}
   </head>
-  <body>
-    <header>
-      <nav>
-        <a href="/">NLP Lab</a>
-        <a href="/members">Members</a>
-        <a href="/projects">Projects</a>
-        <a href="/publications">Publications</a>
-        <a href="/contact">Contact</a>
-      </nav>
+  <body class="{% block body_class %}public-page{% endblock %}">
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a class="site-brand" href="/">
+          <img src="{{ url_for('static', path='images/logo.svg') }}" alt="NLP Lab logo" />
+          <span class="site-brand__text">
+            <strong>NLP Lab</strong>
+            <small>Kyung Hee University</small>
+          </span>
+        </a>
+        {% set current_path = request.url.path %}
+        <nav class="site-nav" aria-label="Primary">
+          <a href="/" class="{% if current_path == '/' %}is-active{% endif %}">Home</a>
+          <a href="/members" class="{% if current_path == '/members' %}is-active{% endif %}">Members</a>
+          <a href="/projects" class="{% if current_path.startswith('/projects') %}is-active{% endif %}">Projects</a>
+          <a href="/publications" class="{% if current_path == '/publications' %}is-active{% endif %}">Publications</a>
+          <a href="/contact" class="{% if current_path == '/contact' %}is-active{% endif %}">Contact</a>
+        </nav>
+      </div>
     </header>
-    <main>{% block content %}{% endblock %}</main>
-    <footer>
-      <small>Copyright NLP Lab</small>
+    <main class="site-main">
+      <div class="container">{% block content %}{% endblock %}</div>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <small>Copyright NLP Lab</small>
+      </div>
     </footer>
+    {% block scripts %}{% endblock %}
   </body>
 </html>

@@ -1,26 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Projects | NLP Lab{% endblock %}
+{% block body_class %}public-page public-projects{% endblock %}
 {% block content %}
-<section>
+<section class="section">
   <h1>Projects</h1>
-  <p>
+  <p class="filter-tabs">
     <a href="/projects"{% if selected_status == "all" %} aria-current="page"{% endif %}>All</a>
     <a href="/projects?status=ongoing"{% if selected_status == "ongoing" %} aria-current="page"{% endif %}>Ongoing</a>
     <a href="/projects?status=completed"{% if selected_status == "completed" %} aria-current="page"{% endif %}>Completed</a>
   </p>
 
   {% if projects %}
-  <ul>
+  <ul class="card-grid card-grid--two">
     {% for project in projects %}
-    <li>
+    <li class="card">
       <h2><a href="/projects/{{ project.slug }}">{{ project.title }}</a></h2>
-      <p>{{ project.summary }}</p>
-      <p>Status: {{ project.status.value }}</p>
+      <p class="text-muted">{{ project.summary }}</p>
+      <p class="meta-line">
+        Status:
+        <span class="status-badge">{{ project.status.value }}</span>
+      </p>
     </li>
     {% endfor %}
   </ul>
   {% else %}
-  <p>No projects found.</p>
+  <p class="empty-state">No projects found.</p>
   {% endif %}
 </section>
 {% endblock %}
