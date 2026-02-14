@@ -18,6 +18,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "poethepoet>=0.31,<0.32",
   "ruff>=0.9,<1.0",
   "ty>=0.0.1,<0.1",
   "pytest>=8.3,<8.4",
@@ -33,3 +34,17 @@ select = ["E", "F", "I", "B", "UP"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 addopts = "-q"
+
+[tool.poe]
+env = { UV_CACHE_DIR = ".uv-cache" }
+
+[tool.poe.tasks]
+serve = "uvicorn app.main:app --reload"
+migrate = "alembic upgrade head"
+migration = "alembic revision --autogenerate -m ${MSG}"
+init-admin = "python -c \"from app.db.init_db import create_initial_admin; create_initial_admin()\""
+lint = "ruff check ."
+format = "ruff format ."
+typecheck = "ty check"
+test = "pytest -q"
+check = ["lint", "typecheck", "test"]

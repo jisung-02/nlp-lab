@@ -25,7 +25,7 @@ cp .env.example .env
 ## 3. DB Migration
 
 ```bash
-uv run alembic upgrade head
+uv run poe migrate
 ```
 
 ## 4. 관리자 초기 계정 준비
@@ -40,7 +40,7 @@ ADMIN_PASSWORD=change-me-now
 2) 초기 관리자 계정을 1회 생성합니다.
 
 ```bash
-uv run python -c "from app.db.init_db import create_initial_admin; create_initial_admin()"
+uv run poe init-admin
 ```
 
 이미 동일한 `ADMIN_USERNAME`이 존재하면 추가 생성되지 않습니다.
@@ -48,7 +48,7 @@ uv run python -c "from app.db.init_db import create_initial_admin; create_initia
 ## 5. Run
 
 ```bash
-uv run uvicorn app.main:app --reload
+uv run poe serve
 ```
 
 - Public: `/`, `/members`, `/projects`, `/projects/{slug}`, `/publications`, `/contact`
@@ -57,17 +57,18 @@ uv run uvicorn app.main:app --reload
 ## 6. Quality Gates
 
 ```bash
-uv run ruff check .
-uv run ruff format .
-uv run ty check
-uv run pytest -q
+uv run poe lint
+uv run poe format
+uv run poe typecheck
+uv run poe test
+uv run poe check
 ```
 
 ## 7. Migration Workflow
 
 ```bash
-uv run alembic revision --autogenerate -m "add_project_slug"
-uv run alembic upgrade head
+uv run poe migration --MSG "add_project_slug"
+uv run poe migrate
 ```
 
 ## 8. Release Smoke Checklist
@@ -76,4 +77,16 @@ uv run alembic upgrade head
 2. Public 6개 화면 렌더링 확인
 3. Admin 6개 화면 렌더링 및 로그인/로그아웃 확인
 4. 관리자 CRUD(Member/Project/Publication/Post) 기본 동작 확인
-5. `uv run ruff check .`, `uv run ty check`, `uv run pytest -q` 통과
+5. `uv run poe check` 통과
+
+## 9. Poe Tasks
+
+- `uv run poe serve`: 개발 서버 실행
+- `uv run poe migrate`: DB 최신 마이그레이션 적용
+- `uv run poe migration --MSG "message"`: 마이그레이션 생성
+- `uv run poe init-admin`: 초기 관리자 생성
+- `uv run poe lint`: Ruff 검사
+- `uv run poe format`: Ruff 포맷팅
+- `uv run poe typecheck`: Ty 검사
+- `uv run poe test`: Pytest 실행
+- `uv run poe check`: lint + typecheck + test 순차 실행
