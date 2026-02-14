@@ -1,18 +1,24 @@
 {% extends "base.html" %}
 {% block title %}Admin Login{% endblock %}
+{% block body_class %}admin-login-page{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}" />
+{% endblock %}
 {% block content %}
-<section>
-  <h1>관리자 로그인</h1>
-  {% if error_message %}
-  <p>{{ error_message }}</p>
-  {% endif %}
-  <form action="/admin/login" method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-    <label for="username">아이디</label>
-    <input id="username" name="username" type="text" minlength="4" maxlength="50" required />
-    <label for="password">비밀번호</label>
-    <input id="password" name="password" type="password" required />
-    <button type="submit">로그인</button>
-  </form>
+<section class="auth-shell">
+  <div class="auth-card card">
+    <h1>관리자 로그인</h1>
+    {% if error_message %}
+    <p class="error-message">{{ error_message }}</p>
+    {% endif %}
+    <form action="/admin/login" method="post" class="admin-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <label for="username">아이디</label>
+      <input id="username" name="username" type="text" minlength="4" maxlength="50" required />
+      <label for="password">비밀번호</label>
+      <input id="password" name="password" type="password" required />
+      <button type="submit" class="btn">로그인</button>
+    </form>
+  </div>
 </section>
 {% endblock %}

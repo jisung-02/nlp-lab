@@ -1,1 +1,162 @@
-/* Admin page styles will be defined in Phase 6. */
+.admin-page .site-nav {
+  display: none;
+}
+
+.admin-page .site-header__inner {
+  justify-content: flex-start;
+}
+
+.admin-login-page .site-header,
+.admin-login-page .site-footer {
+  display: none;
+}
+
+.admin-login-page .site-main {
+  min-height: 100vh;
+  display: grid;
+  align-items: center;
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+.auth-shell {
+  display: grid;
+  place-items: center;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 460px;
+  display: grid;
+  gap: 16px;
+}
+
+.admin-form {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: var(--space-card-gap);
+  align-items: start;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.admin-nav {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-nav a {
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--color-text-muted);
+}
+
+.admin-nav a:hover,
+.admin-nav a:focus-visible {
+  background: #edf1f5;
+  color: var(--color-text);
+  opacity: 1;
+}
+
+.admin-nav a.is-active {
+  background: #e7f0f8;
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.admin-content {
+  display: grid;
+  gap: var(--space-card-gap);
+}
+
+.admin-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panel {
+  display: grid;
+  gap: 14px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-card-gap);
+}
+
+.stat-card {
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+}
+
+.form-grid {
+  grid-template-columns: 1fr;
+}
+
+.form-grid .full-row {
+  grid-column: 1 / -1;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.entity-list {
+  display: grid;
+  gap: var(--space-card-gap);
+}
+
+.entity-card {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 860px) {
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-topbar {
+    flex-wrap: wrap;
+  }
+}

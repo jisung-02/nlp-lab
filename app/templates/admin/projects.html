@@ -1,65 +1,107 @@
 {% extends "base.html" %}
 {% block title %}Admin Projects{% endblock %}
+{% block body_class %}admin-page{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}" />
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', path='js/admin_forms.js') }}" defer></script>
+{% endblock %}
 {% block content %}
-<section>
-  <h1>프로젝트 관리</h1>
-  <p><a href="/admin">대시보드로 이동</a></p>
-  {% if error_message %}
-  <p>{{ error_message }}</p>
-  {% endif %}
+<div class="admin-layout">
+  <aside class="admin-sidebar card">
+    <h2>관리자 메뉴</h2>
+    <nav class="admin-nav" aria-label="Admin Navigation">
+      <a href="/admin">대시보드</a>
+      <a href="/admin/members">멤버</a>
+      <a href="/admin/projects" class="is-active">프로젝트</a>
+      <a href="/admin/publications">논문</a>
+      <a href="/admin/posts">게시글</a>
+    </nav>
+  </aside>
 
-  <h2>프로젝트 생성</h2>
-  <form action="/admin/projects" method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-    <label>제목 <input type="text" name="title" maxlength="200" required /></label>
-    <label>Slug <input type="text" name="slug" maxlength="150" required /></label>
-    <label>요약 <input type="text" name="summary" maxlength="300" required /></label>
-    <label>설명 <textarea name="description" maxlength="8000" required></textarea></label>
-    <label>
-      상태
-      <select name="status" required>
-        {% for status in statuses %}
-        <option value="{{ status.value }}">{{ status.value }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>시작일 <input type="date" name="start_date" required /></label>
-    <label>종료일 <input type="date" name="end_date" /></label>
-    <button type="submit">생성</button>
-  </form>
-
-  <h2>프로젝트 목록</h2>
-  {% if projects %}
-  <ul>
-    {% for project in projects %}
-    <li>
-      <form action="/admin/projects/{{ project.id }}/update" method="post">
+  <section class="admin-content">
+    <div class="admin-topbar card">
+      <p class="meta-line">Admin Session</p>
+      <form action="/admin/logout" method="post" class="inline-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <label>제목 <input type="text" name="title" value="{{ project.title }}" maxlength="200" required /></label>
-        <label>Slug <input type="text" name="slug" value="{{ project.slug }}" maxlength="150" required /></label>
-        <label>요약 <input type="text" name="summary" value="{{ project.summary }}" maxlength="300" required /></label>
-        <label>설명 <textarea name="description" maxlength="8000" required>{{ project.description }}</textarea></label>
+        <button type="submit" class="btn btn-secondary">로그아웃</button>
+      </form>
+    </div>
+
+    <div class="admin-page-header">
+      <h1>프로젝트 관리</h1>
+    </div>
+    {% if error_message %}
+    <p class="error-message">{{ error_message }}</p>
+    {% endif %}
+
+    <section class="panel card">
+      <h2>프로젝트 생성</h2>
+      <form action="/admin/projects" method="post" class="admin-form form-grid">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <label>제목 <input type="text" name="title" maxlength="200" required /></label>
+        <label>Slug <input type="text" name="slug" maxlength="150" required /></label>
+        <label class="full-row">요약 <input type="text" name="summary" maxlength="300" required /></label>
+        <label class="full-row">설명 <textarea name="description" maxlength="8000" required></textarea></label>
         <label>
           상태
           <select name="status" required>
             {% for status in statuses %}
-            <option value="{{ status.value }}" {% if project.status == status %}selected{% endif %}>{{ status.value }}</option>
+            <option value="{{ status.value }}">{{ status.value }}</option>
             {% endfor %}
           </select>
         </label>
-        <label>시작일 <input type="date" name="start_date" value="{{ project.start_date.isoformat() }}" required /></label>
-        <label>종료일 <input type="date" name="end_date" value="{{ project.end_date.isoformat() if project.end_date else '' }}" /></label>
-        <button type="submit">수정</button>
+        <label>시작일 <input type="date" name="start_date" required /></label>
+        <label>종료일 <input type="date" name="end_date" /></label>
+        <div class="form-actions full-row">
+          <button type="submit" class="btn">생성</button>
+        </div>
       </form>
-      <form action="/admin/projects/{{ project.id }}/delete" method="post">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <button type="submit">삭제</button>
-      </form>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p>등록된 프로젝트가 없습니다.</p>
-  {% endif %}
-</section>
+    </section>
+
+    <section class="panel">
+      <h2>프로젝트 목록</h2>
+      {% if projects %}
+      <ul class="entity-list">
+        {% for project in projects %}
+        <li class="entity-card card">
+          <form action="/admin/projects/{{ project.id }}/update" method="post" class="admin-form form-grid">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <label>제목 <input type="text" name="title" value="{{ project.title }}" maxlength="200" required /></label>
+            <label>Slug <input type="text" name="slug" value="{{ project.slug }}" maxlength="150" required /></label>
+            <label class="full-row">요약 <input type="text" name="summary" value="{{ project.summary }}" maxlength="300" required /></label>
+            <label class="full-row">설명 <textarea name="description" maxlength="8000" required>{{ project.description }}</textarea></label>
+            <label>
+              상태
+              <select name="status" required>
+                {% for status in statuses %}
+                <option value="{{ status.value }}" {% if project.status == status %}selected{% endif %}>{{ status.value }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>시작일 <input type="date" name="start_date" value="{{ project.start_date.isoformat() }}" required /></label>
+            <label>종료일 <input type="date" name="end_date" value="{{ project.end_date.isoformat() if project.end_date else '' }}" /></label>
+            <div class="form-actions full-row">
+              <button type="submit" class="btn">수정</button>
+            </div>
+          </form>
+          <form
+            action="/admin/projects/{{ project.id }}/delete"
+            method="post"
+            class="inline-form"
+            data-confirm-delete="프로젝트를 삭제하시겠습니까?"
+          >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <button type="submit" class="btn btn-danger">삭제</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty-state">등록된 프로젝트가 없습니다.</p>
+      {% endif %}
+    </section>
+  </section>
+</div>
 {% endblock %}

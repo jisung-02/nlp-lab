@@ -1,65 +1,107 @@
 {% extends "base.html" %}
 {% block title %}Admin Publications{% endblock %}
+{% block body_class %}admin-page{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}" />
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', path='js/admin_forms.js') }}" defer></script>
+{% endblock %}
 {% block content %}
-<section>
-  <h1>논문 관리</h1>
-  <p><a href="/admin">대시보드로 이동</a></p>
-  {% if error_message %}
-  <p>{{ error_message }}</p>
-  {% endif %}
+<div class="admin-layout">
+  <aside class="admin-sidebar card">
+    <h2>관리자 메뉴</h2>
+    <nav class="admin-nav" aria-label="Admin Navigation">
+      <a href="/admin">대시보드</a>
+      <a href="/admin/members">멤버</a>
+      <a href="/admin/projects">프로젝트</a>
+      <a href="/admin/publications" class="is-active">논문</a>
+      <a href="/admin/posts">게시글</a>
+    </nav>
+  </aside>
 
-  <h2>논문 생성</h2>
-  <form action="/admin/publications" method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-    <label>제목 <input type="text" name="title" maxlength="300" required /></label>
-    <label>저자 <input type="text" name="authors" maxlength="500" required /></label>
-    <label>학회/저널 <input type="text" name="venue" maxlength="255" required /></label>
-    <label>연도 <input type="number" name="year" min="1900" max="3000" required /></label>
-    <label>링크 <input type="url" name="link" maxlength="500" /></label>
-    <label>
-      연결 프로젝트
-      <select name="related_project_id">
-        <option value="">없음</option>
-        {% for project in projects %}
-        <option value="{{ project.id }}">{{ project.title }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <button type="submit">생성</button>
-  </form>
-
-  <h2>논문 목록</h2>
-  {% if publications %}
-  <ul>
-    {% for publication in publications %}
-    <li>
-      <form action="/admin/publications/{{ publication.id }}/update" method="post">
+  <section class="admin-content">
+    <div class="admin-topbar card">
+      <p class="meta-line">Admin Session</p>
+      <form action="/admin/logout" method="post" class="inline-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <label>제목 <input type="text" name="title" value="{{ publication.title }}" maxlength="300" required /></label>
-        <label>저자 <input type="text" name="authors" value="{{ publication.authors }}" maxlength="500" required /></label>
-        <label>학회/저널 <input type="text" name="venue" value="{{ publication.venue }}" maxlength="255" required /></label>
-        <label>연도 <input type="number" name="year" value="{{ publication.year }}" min="1900" max="3000" required /></label>
-        <label>링크 <input type="url" name="link" value="{{ publication.link or '' }}" maxlength="500" /></label>
+        <button type="submit" class="btn btn-secondary">로그아웃</button>
+      </form>
+    </div>
+
+    <div class="admin-page-header">
+      <h1>논문 관리</h1>
+    </div>
+    {% if error_message %}
+    <p class="error-message">{{ error_message }}</p>
+    {% endif %}
+
+    <section class="panel card">
+      <h2>논문 생성</h2>
+      <form action="/admin/publications" method="post" class="admin-form form-grid">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <label class="full-row">제목 <input type="text" name="title" maxlength="300" required /></label>
+        <label>저자 <input type="text" name="authors" maxlength="500" required /></label>
+        <label>학회/저널 <input type="text" name="venue" maxlength="255" required /></label>
+        <label>연도 <input type="number" name="year" min="1900" max="3000" required /></label>
+        <label>링크 <input type="url" name="link" maxlength="500" /></label>
         <label>
           연결 프로젝트
           <select name="related_project_id">
             <option value="">없음</option>
             {% for project in projects %}
-            <option value="{{ project.id }}" {% if publication.related_project_id == project.id %}selected{% endif %}>{{ project.title }}</option>
+            <option value="{{ project.id }}">{{ project.title }}</option>
             {% endfor %}
           </select>
         </label>
-        <button type="submit">수정</button>
+        <div class="form-actions full-row">
+          <button type="submit" class="btn">생성</button>
+        </div>
       </form>
-      <form action="/admin/publications/{{ publication.id }}/delete" method="post">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <button type="submit">삭제</button>
-      </form>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p>등록된 논문이 없습니다.</p>
-  {% endif %}
-</section>
+    </section>
+
+    <section class="panel">
+      <h2>논문 목록</h2>
+      {% if publications %}
+      <ul class="entity-list">
+        {% for publication in publications %}
+        <li class="entity-card card">
+          <form action="/admin/publications/{{ publication.id }}/update" method="post" class="admin-form form-grid">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <label class="full-row">제목 <input type="text" name="title" value="{{ publication.title }}" maxlength="300" required /></label>
+            <label>저자 <input type="text" name="authors" value="{{ publication.authors }}" maxlength="500" required /></label>
+            <label>학회/저널 <input type="text" name="venue" value="{{ publication.venue }}" maxlength="255" required /></label>
+            <label>연도 <input type="number" name="year" value="{{ publication.year }}" min="1900" max="3000" required /></label>
+            <label>링크 <input type="url" name="link" value="{{ publication.link or '' }}" maxlength="500" /></label>
+            <label>
+              연결 프로젝트
+              <select name="related_project_id">
+                <option value="">없음</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}" {% if publication.related_project_id == project.id %}selected{% endif %}>{{ project.title }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <div class="form-actions full-row">
+              <button type="submit" class="btn">수정</button>
+            </div>
+          </form>
+          <form
+            action="/admin/publications/{{ publication.id }}/delete"
+            method="post"
+            class="inline-form"
+            data-confirm-delete="논문을 삭제하시겠습니까?"
+          >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <button type="submit" class="btn btn-danger">삭제</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty-state">등록된 논문이 없습니다.</p>
+      {% endif %}
+    </section>
+  </section>
+</div>
 {% endblock %}
