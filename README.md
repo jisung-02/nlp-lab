@@ -304,7 +304,38 @@ uv run poe serve
 - `uv run poe test`
 - `tests/test_admin_auth.py`, `tests/test_member_crud.py`, `tests/test_admin_content_crud.py`
 
-### 10.3 모델 필드 추가/수정
+### 10.3 Public 디자인 톤 조정 (빠른 반영)
+
+디자인 피드백은 아래 한 파일의 상단 토큰 블록부터 조정합니다.
+
+- `app/static/css/public.css`
+
+우선 조정 변수:
+- `--bg`, `--bg-mid`, `--bg-alt`: 배경 톤/그라데이션
+- `--accent`: 포인트 컬러
+- `--header-bg`: 헤더 유리질감 배경
+- `--surface`: 카드 배경
+
+원칙:
+- 구조(레이아웃/마크업)보다 토큰 먼저 조정
+- 레퍼런스 대비 톤 차이만 최소 변경으로 보정
+
+### 10.4 Admin 페이지 확장 기준 템플릿
+
+새 관리자 CRUD 화면은 아래 파일을 기준 템플릿으로 확장합니다.
+
+- 기준 템플릿: `app/templates/admin/posts.html`
+
+이유:
+- 생성/수정/삭제 폼, CSRF hidden input, 에러 메시지, 목록 렌더 패턴이 한 파일에 완결되어 확장 출발점으로 가장 단순함
+
+확장 시 고정 규칙:
+1. 템플릿: `body_class=admin-page`, `admin.css`, `admin_forms.js` 유지
+2. 라우트: `GET 목록`, `POST 생성`, `POST /{id}/update`, `POST /{id}/delete` 패턴 유지
+3. 보안: 모든 POST에 `csrf_token` 필수
+4. 검증: 입력 파싱은 `app/services/*_service.py`로 위임
+
+### 10.5 모델 필드 추가/수정
 
 순서:
 1. `app/models/*.py` 수정
