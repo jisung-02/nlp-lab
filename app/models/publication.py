@@ -1,7 +1,5 @@
 """Publication model."""
 
-from __future__ import annotations
-
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -31,4 +29,4 @@ class Publication(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
 
-    related_project: Project | None = Relationship(back_populates="publications")
+    related_project: "Project" = Relationship(back_populates="publications")
