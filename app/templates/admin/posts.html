@@ -1,4 +1,57 @@
 {% extends "base.html" %}
+{% block title %}Admin Posts{% endblock %}
 {% block content %}
-<h1>Admin Posts</h1>
+<section>
+  <h1>게시글 관리</h1>
+  <p><a href="/admin">대시보드로 이동</a></p>
+  {% if error_message %}
+  <p>{{ error_message }}</p>
+  {% endif %}
+
+  <h2>게시글 생성</h2>
+  <form action="/admin/posts" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <label>제목 <input type="text" name="title" maxlength="200" required /></label>
+    <label>Slug <input type="text" name="slug" maxlength="150" required /></label>
+    <label>내용 <textarea name="content" maxlength="12000" required></textarea></label>
+    <label>
+      공개 여부
+      <select name="is_published" required>
+        <option value="true" selected>true</option>
+        <option value="false">false</option>
+      </select>
+    </label>
+    <button type="submit">생성</button>
+  </form>
+
+  <h2>게시글 목록</h2>
+  {% if posts %}
+  <ul>
+    {% for post in posts %}
+    <li>
+      <form action="/admin/posts/{{ post.id }}/update" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <label>제목 <input type="text" name="title" value="{{ post.title }}" maxlength="200" required /></label>
+        <label>Slug <input type="text" name="slug" value="{{ post.slug }}" maxlength="150" required /></label>
+        <label>내용 <textarea name="content" maxlength="12000" required>{{ post.content }}</textarea></label>
+        <label>
+          공개 여부
+          <select name="is_published" required>
+            <option value="true" {% if post.is_published %}selected{% endif %}>true</option>
+            <option value="false" {% if not post.is_published %}selected{% endif %}>false</option>
+          </select>
+        </label>
+        <button type="submit">수정</button>
+      </form>
+      <form action="/admin/posts/{{ post.id }}/delete" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button type="submit">삭제</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>등록된 게시글이 없습니다.</p>
+  {% endif %}
+</section>
 {% endblock %}

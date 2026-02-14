@@ -1,4 +1,63 @@
 {% extends "base.html" %}
+{% block title %}Admin Members{% endblock %}
 {% block content %}
-<h1>Admin Members</h1>
+<section>
+  <h1>멤버 관리</h1>
+  <p><a href="/admin">대시보드로 이동</a></p>
+  {% if error_message %}
+  <p>{{ error_message }}</p>
+  {% endif %}
+
+  <h2>멤버 생성</h2>
+  <form action="/admin/members" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <label>이름 <input type="text" name="name" maxlength="100" required /></label>
+    <label>
+      역할
+      <select name="role" required>
+        {% for role in roles %}
+        <option value="{{ role.value }}">{{ role.value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>이메일 <input type="email" name="email" maxlength="255" required /></label>
+    <label>사진 URL <input type="url" name="photo_url" maxlength="500" /></label>
+    <label>소개 <textarea name="bio" maxlength="2000"></textarea></label>
+    <label>표시 순서 <input type="number" name="display_order" value="100" min="0" required /></label>
+    <button type="submit">생성</button>
+  </form>
+
+  <h2>멤버 목록</h2>
+  {% if members %}
+  <ul>
+    {% for member in members %}
+    <li>
+      <form action="/admin/members/{{ member.id }}/update" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <label>이름 <input type="text" name="name" value="{{ member.name }}" maxlength="100" required /></label>
+        <label>
+          역할
+          <select name="role" required>
+            {% for role in roles %}
+            <option value="{{ role.value }}" {% if member.role == role %}selected{% endif %}>{{ role.value }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>이메일 <input type="email" name="email" value="{{ member.email }}" maxlength="255" required /></label>
+        <label>사진 URL <input type="url" name="photo_url" value="{{ member.photo_url or '' }}" maxlength="500" /></label>
+        <label>소개 <textarea name="bio" maxlength="2000">{{ member.bio or '' }}</textarea></label>
+        <label>표시 순서 <input type="number" name="display_order" value="{{ member.display_order }}" min="0" required /></label>
+        <button type="submit">수정</button>
+      </form>
+      <form action="/admin/members/{{ member.id }}/delete" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button type="submit">삭제</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>등록된 멤버가 없습니다.</p>
+  {% endif %}
+</section>
 {% endblock %}

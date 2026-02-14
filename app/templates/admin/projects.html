@@ -1,4 +1,65 @@
 {% extends "base.html" %}
+{% block title %}Admin Projects{% endblock %}
 {% block content %}
-<h1>Admin Projects</h1>
+<section>
+  <h1>프로젝트 관리</h1>
+  <p><a href="/admin">대시보드로 이동</a></p>
+  {% if error_message %}
+  <p>{{ error_message }}</p>
+  {% endif %}
+
+  <h2>프로젝트 생성</h2>
+  <form action="/admin/projects" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <label>제목 <input type="text" name="title" maxlength="200" required /></label>
+    <label>Slug <input type="text" name="slug" maxlength="150" required /></label>
+    <label>요약 <input type="text" name="summary" maxlength="300" required /></label>
+    <label>설명 <textarea name="description" maxlength="8000" required></textarea></label>
+    <label>
+      상태
+      <select name="status" required>
+        {% for status in statuses %}
+        <option value="{{ status.value }}">{{ status.value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>시작일 <input type="date" name="start_date" required /></label>
+    <label>종료일 <input type="date" name="end_date" /></label>
+    <button type="submit">생성</button>
+  </form>
+
+  <h2>프로젝트 목록</h2>
+  {% if projects %}
+  <ul>
+    {% for project in projects %}
+    <li>
+      <form action="/admin/projects/{{ project.id }}/update" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <label>제목 <input type="text" name="title" value="{{ project.title }}" maxlength="200" required /></label>
+        <label>Slug <input type="text" name="slug" value="{{ project.slug }}" maxlength="150" required /></label>
+        <label>요약 <input type="text" name="summary" value="{{ project.summary }}" maxlength="300" required /></label>
+        <label>설명 <textarea name="description" maxlength="8000" required>{{ project.description }}</textarea></label>
+        <label>
+          상태
+          <select name="status" required>
+            {% for status in statuses %}
+            <option value="{{ status.value }}" {% if project.status == status %}selected{% endif %}>{{ status.value }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>시작일 <input type="date" name="start_date" value="{{ project.start_date.isoformat() }}" required /></label>
+        <label>종료일 <input type="date" name="end_date" value="{{ project.end_date.isoformat() if project.end_date else '' }}" /></label>
+        <button type="submit">수정</button>
+      </form>
+      <form action="/admin/projects/{{ project.id }}/delete" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button type="submit">삭제</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>등록된 프로젝트가 없습니다.</p>
+  {% endif %}
+</section>
 {% endblock %}

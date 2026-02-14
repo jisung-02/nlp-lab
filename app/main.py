@@ -12,6 +12,10 @@ from fastapi.templating import Jinja2Templates
 
 from app.core.config import get_settings
 from app.routers.admin_auth import router as admin_auth_router
+from app.routers.admin_member import router as admin_member_router
+from app.routers.admin_post import router as admin_post_router
+from app.routers.admin_project import router as admin_project_router
+from app.routers.admin_publication import router as admin_publication_router
 from app.routers.public import router as public_router
 from app.services.auth_service import SESSION_ADMIN_USER_ID_KEY
 
@@ -99,6 +103,10 @@ def create_app() -> FastAPI:
     app.state.templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     app.include_router(public_router)
     app.include_router(admin_auth_router)
+    app.include_router(admin_member_router)
+    app.include_router(admin_project_router)
+    app.include_router(admin_publication_router)
+    app.include_router(admin_post_router)
     return app
 
 
