@@ -1,4 +1,15 @@
 {% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
 {% block content %}
-<h1>Admin Dashboard</h1>
+<section>
+  <h1>관리자 대시보드</h1>
+  <p>멤버 수: {{ member_count }}</p>
+  <p>프로젝트 수: {{ project_count }}</p>
+  <p>논문 수: {{ publication_count }}</p>
+  <p>게시글 수: {{ post_count }}</p>
+  <form action="/admin/logout" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <button type="submit">로그아웃</button>
+  </form>
+</section>
 {% endblock %}

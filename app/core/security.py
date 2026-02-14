@@ -1,17 +1,19 @@
 """Security and password helper functions."""
 
-from passlib.context import CryptContext
-
-password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import bcrypt
 
 
 def hash_password(password: str) -> str:
     """Hash password using bcrypt."""
 
-    return password_context.hash(password)
+    hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    return hashed_password.decode("utf-8")
 
 
 def verify_password(password: str, password_hash: str) -> bool:
     """Verify plain password against stored hash."""
 
-    return password_context.verify(password, password_hash)
+    try:
+        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+    except ValueError:
+        return False

@@ -1,4 +1,18 @@
 {% extends "base.html" %}
+{% block title %}Admin Login{% endblock %}
 {% block content %}
-<h1>Admin Login</h1>
+<section>
+  <h1>관리자 로그인</h1>
+  {% if error_message %}
+  <p>{{ error_message }}</p>
+  {% endif %}
+  <form action="/admin/login" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <label for="username">아이디</label>
+    <input id="username" name="username" type="text" minlength="4" maxlength="50" required />
+    <label for="password">비밀번호</label>
+    <input id="password" name="password" type="password" required />
+    <button type="submit">로그인</button>
+  </form>
+</section>
 {% endblock %}
