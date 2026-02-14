@@ -1,0 +1,1 @@
+"""Admin post routes module."""

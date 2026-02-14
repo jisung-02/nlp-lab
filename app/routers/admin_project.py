@@ -1,0 +1,1 @@
+"""Admin project routes module."""

@@ -1,0 +1,1 @@
+"""Admin publication routes module."""

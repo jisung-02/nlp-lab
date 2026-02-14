@@ -1,0 +1,1 @@
+"""Member schema module."""

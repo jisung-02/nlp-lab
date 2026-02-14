@@ -1,0 +1,1 @@
+"""Admin user model module."""

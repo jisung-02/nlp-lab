@@ -1,0 +1,1 @@
+"""Member repository module."""
