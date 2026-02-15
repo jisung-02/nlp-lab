@@ -132,6 +132,101 @@ const initHeroImageUpload = () => {
   });
 };
 
+const renderMemberPhotoPreview = (file) => {
+  const preview = document.getElementById("member-photo-preview");
+  if (!(preview instanceof HTMLElement)) {
+    return;
+  }
+
+  if (!(file instanceof File)) {
+    preview.innerHTML = '<p class="meta-line">선택된 파일 없음</p>';
+    return;
+  }
+
+  const imageUrl = URL.createObjectURL(file);
+  preview.innerHTML = `
+    <div class="member-photo-upload-preview">
+      <img src="${imageUrl}" alt="선택한 멤버 사진 미리보기" />
+      <p class="meta-line">${file.name} (${Math.ceil(file.size / 1024)}KB)</p>
+    </div>
+  `;
+
+  const previewImage = preview.querySelector("img");
+  if (previewImage instanceof HTMLImageElement) {
+    previewImage.onload = () => {
+      URL.revokeObjectURL(imageUrl);
+    };
+  }
+};
+
+const applyMemberPhotoFile = (file) => {
+  const fileInput = document.getElementById("member-photo-file");
+  const dropzone = document.getElementById("member-photo-dropzone");
+  if (!(fileInput instanceof HTMLInputElement) || !(dropzone instanceof HTMLElement)) {
+    return;
+  }
+
+  const dataTransfer = new DataTransfer();
+  dataTransfer.items.add(file);
+  fileInput.files = dataTransfer.files;
+  renderMemberPhotoPreview(file);
+  dropzone.classList.remove("is-active");
+};
+
+const initMemberPhotoUpload = () => {
+  const dropzone = document.getElementById("member-photo-dropzone");
+  const picker = document.getElementById("member-photo-picker");
+  const fileInput = document.getElementById("member-photo-file");
+  if (
+    !(dropzone instanceof HTMLElement) ||
+    !(picker instanceof HTMLButtonElement) ||
+    !(fileInput instanceof HTMLInputElement)
+  ) {
+    return;
+  }
+
+  const isImageFile = (file) => file.type.startsWith("image/");
+  const handleIncomingFiles = (files) => {
+    const firstImageFile = Array.from(files).find(isImageFile);
+    if (!(firstImageFile instanceof File)) {
+      renderMemberPhotoPreview(null);
+      return;
+    }
+    applyMemberPhotoFile(firstImageFile);
+  };
+
+  picker.addEventListener("click", () => {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener("change", () => {
+    handleIncomingFiles(fileInput.files || []);
+  });
+
+  ["dragenter", "dragover"].forEach((eventName) => {
+    dropzone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      dropzone.classList.add("is-active");
+    });
+  });
+
+  ["dragleave", "drop"].forEach((eventName) => {
+    dropzone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      dropzone.classList.remove("is-active");
+    });
+  });
+
+  dropzone.addEventListener("drop", (event) => {
+    if (!(event.dataTransfer instanceof DataTransfer)) {
+      return;
+    }
+    handleIncomingFiles(event.dataTransfer.files);
+  });
+};
+
 const initHeroImageDeleteSummary = () => {
   const summary = document.getElementById("hero-image-delete-summary");
   if (!(summary instanceof HTMLElement)) {
@@ -163,9 +258,11 @@ const initHeroImageDeleteSummary = () => {
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initAdminFormHelpers);
   document.addEventListener("DOMContentLoaded", initHeroImageUpload);
+  document.addEventListener("DOMContentLoaded", initMemberPhotoUpload);
   document.addEventListener("DOMContentLoaded", initHeroImageDeleteSummary);
 } else {
   initAdminFormHelpers();
   initHeroImageUpload();
+  initMemberPhotoUpload();
   initHeroImageDeleteSummary();
 }

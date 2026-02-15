@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import re
 from http.cookies import SimpleCookie
+from pathlib import Path
 from urllib.parse import urlencode
 
 import pytest
@@ -347,6 +348,76 @@ def test_member_create_rejects_unsafe_photo_url_scheme(app_and_engine):
 
     with Session(engine) as session:
         assert session.exec(select(Member)).all() == []
+
+
+def test_member_create_with_uploaded_photo_file(app_and_engine):
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    app, engine = app_and_engine
+    client = TestClient(app)
+
+    login_body = client.get("/admin/login").text
+    login_csrf_token = _extract_csrf_token(login_body)
+    response = client.post(
+        "/admin/login",
+        data={
+            "username": "admin",
+            "password": "test-password",
+            "csrf_token": login_csrf_token,
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin"
+
+    members_body = client.get("/admin/members").text
+    members_csrf_token = _extract_csrf_token(members_body)
+    response = client.post(
+        "/admin/members",
+        data={
+            "name": "업로드 멤버",
+            "role": "master",
+            "email": "upload-member@example.com",
+            "photo_url": "",
+            "bio": "파일 업로드 소개",
+            "display_order": "5",
+            "csrf_token": members_csrf_token,
+        },
+        files={
+            "photo_file": (
+                "member-upload.png",
+                b"\x89PNG\r\n\x1a\n" + b"7" * 32,
+                "image/png",
+            )
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/members"
+
+    uploaded_photo_path: Path | None = None
+    try:
+        with Session(engine) as session:
+            member = session.exec(
+                select(Member).where(Member.email == "upload-member@example.com")
+            ).first()
+            assert member is not None
+            assert member.photo_url is not None
+            assert member.photo_url.startswith("/static/images/members/")
+
+            uploaded_photo_path = (
+                Path(__file__).resolve().parents[1]
+                / "app/static/images/members"
+                / member.photo_url.removeprefix("/static/images/members/")
+            )
+            assert uploaded_photo_path.exists()
+
+        members_page = client.get("/admin/members")
+        assert members_page.status_code == 200
+        assert "upload-member@example.com" in members_page.text
+        assert "/static/images/members/" in members_page.text
+    finally:
+        if uploaded_photo_path is not None and uploaded_photo_path.exists():
+            uploaded_photo_path.unlink()
 
 
 def test_member_routes_reject_invalid_csrf_and_missing_delete_target(app_and_engine):

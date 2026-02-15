@@ -45,7 +45,12 @@
 
     <section class="panel card">
       <h2>멤버 생성</h2>
-      <form action="/admin/members" method="post" class="admin-form form-grid">
+      <form
+        action="/admin/members"
+        method="post"
+        enctype="multipart/form-data"
+        class="admin-form form-grid"
+      >
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <label>이름 <input type="text" name="name" maxlength="100" required /></label>
         <label>
@@ -57,7 +62,22 @@
           </select>
         </label>
         <label>이메일 <input type="email" name="email" maxlength="255" required /></label>
-        <label>사진 URL <input type="url" name="photo_url" maxlength="500" /></label>
+        <label class="full-row">
+          사진 URL
+          <input type="text" name="photo_url" maxlength="500" placeholder="/static/images/profile.png" />
+        </label>
+        <div class="full-row hero-upload-block">
+          <p class="meta-line">또는 사진 파일로 업로드</p>
+          <div id="member-photo-dropzone" class="hero-upload-dropzone" tabindex="0">
+            <input id="member-photo-file" type="file" name="photo_file" accept="image/*" />
+            <p>이미지를 여기에 드래그하거나</p>
+            <button type="button" id="member-photo-picker" class="btn btn-secondary">파일 탐색</button>
+            <p class="meta-line">허용 형식: JPG, JPEG, PNG, WebP, GIF · 최대 8MB</p>
+          </div>
+          <div id="member-photo-preview" class="hero-upload-preview" aria-live="polite">
+            <p class="meta-line">선택된 파일 없음</p>
+          </div>
+        </div>
         <label class="full-row">소개 <textarea name="bio" maxlength="2000"></textarea></label>
         <label>표시 순서 <input type="number" name="display_order" value="100" min="0" required /></label>
         <div class="form-actions full-row">
@@ -72,8 +92,24 @@
       <ul class="entity-list">
         {% for member in members %}
         <li class="entity-card card">
+          <div class="member-photo-admin-preview">
+            {% if member.photo_url %}
+            <img src="{{ member.photo_url }}" alt="{{ member.name }}" loading="lazy" />
+            {% else %}
+            <img src="{{ url_for('static', path='images/default-profile.svg') }}" alt="{{ member.name }}" loading="lazy" />
+            {% endif %}
+            <div class="member-photo-admin-preview-text">
+              <strong>{{ member.name }}</strong>
+              <span class="meta-line">{{ member.photo_url or '기본 프로필 이미지 사용' }}</span>
+            </div>
+          </div>
           <div class="entity-actions">
-            <form action="/admin/members/{{ member.id }}/update" method="post" class="admin-form form-grid">
+            <form
+              action="/admin/members/{{ member.id }}/update"
+              method="post"
+              enctype="multipart/form-data"
+              class="admin-form form-grid"
+            >
               <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
               <label>이름 <input type="text" name="name" value="{{ member.name }}" maxlength="100" required /></label>
               <label>
@@ -85,7 +121,17 @@
                 </select>
               </label>
               <label>이메일 <input type="email" name="email" value="{{ member.email }}" maxlength="255" required /></label>
-              <label>사진 URL <input type="url" name="photo_url" value="{{ member.photo_url or '' }}" maxlength="500" /></label>
+              <label>
+                사진 URL
+                <input
+                  type="text"
+                  name="photo_url"
+                  value="{{ member.photo_url or '' }}"
+                  maxlength="500"
+                  placeholder="/static/images/profile.png"
+                />
+              </label>
+              <label>사진 파일 <input type="file" name="photo_file" accept="image/*" /></label>
               <label class="full-row">소개 <textarea name="bio" maxlength="2000">{{ member.bio or '' }}</textarea></label>
               <label>표시 순서 <input type="number" name="display_order" value="{{ member.display_order }}" min="0" required /></label>
               <div class="form-actions full-row">
