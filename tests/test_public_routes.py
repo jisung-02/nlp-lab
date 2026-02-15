@@ -330,7 +330,7 @@ def test_home_sorting_rules_and_limits(app_and_engine):
                 Post(
                     title="home-hero-image",
                     slug=HOME_HERO_IMAGE_POST_SLUG,
-                    content="/static/images/custom-hero.jpg",
+                    content="/static/images/custom-hero.jpg\n/static/images/custom-hero-2.jpg",
                     is_published=True,
                     created_at=_dt(6),
                     updated_at=_dt(6),
@@ -358,7 +358,53 @@ def test_home_sorting_rules_and_limits(app_and_engine):
     post_titles = [post.title for post in response.context["posts"]]
     assert post_titles == ["post-newest", "post-new", "post-middle"]
     assert "post-unpublished" not in post_titles
+    assert response.context["hero_images"] == [
+        "/static/images/custom-hero.jpg",
+        "/static/images/custom-hero-2.jpg",
+    ]
     assert response.context["hero_image_url"] == "/static/images/custom-hero.jpg"
+
+
+def test_home_hero_image_path_is_normalized_to_static(app_and_engine):
+    app, engine = app_and_engine
+    with Session(engine) as session:
+        session.add(
+            Post(
+                title="home-hero-image",
+                slug=HOME_HERO_IMAGE_POST_SLUG,
+                content="images/relative-hero.jpg",
+                is_published=True,
+                created_at=_dt(1),
+                updated_at=_dt(1),
+            )
+        )
+        session.commit()
+
+        response = home(_make_request(app, "/"), session=session)
+
+    assert response.status_code == 200
+    assert response.context["hero_images"] == ["/static/images/relative-hero.jpg"]
+
+
+def test_home_hero_image_old_default_path_is_normalized(app_and_engine):
+    app, engine = app_and_engine
+    with Session(engine) as session:
+        session.add(
+            Post(
+                title="home-hero-image",
+                slug=HOME_HERO_IMAGE_POST_SLUG,
+                content="/static/images/hero.jpg",
+                is_published=True,
+                created_at=_dt(1),
+                updated_at=_dt(1),
+            )
+        )
+        session.commit()
+
+        response = home(_make_request(app, "/"), session=session)
+
+    assert response.status_code == 200
+    assert response.context["hero_images"] == ["/static/images/hero/hero.jpg"]
 
 
 def test_project_detail_shows_only_related_publications(app_and_engine):

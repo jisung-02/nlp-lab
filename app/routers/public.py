@@ -26,13 +26,9 @@ def home(
     request: Request,
     session: Annotated[Session, Depends(get_session)],
 ):
-    hero_image_post = post_service.get_home_hero_image_post(session)
-    default_hero_image_url = str(request.url_for("static", path="images/hero.jpg"))
-    hero_image_url = (
-        hero_image_post.content.strip()
-        if hero_image_post is not None and hero_image_post.content.strip()
-        else default_hero_image_url
-    )
+    default_hero_image_url = request.url_for("static", path="images/hero/hero.jpg").path
+    hero_images = post_service.get_home_hero_image_urls(session)
+    hero_image_urls = hero_images if hero_images else [default_hero_image_url]
     latest_projects = session.exec(
         select(Project).order_by(col(Project.created_at).desc()).limit(3)
     ).all()
@@ -63,7 +59,8 @@ def home(
             publications=latest_publications,
             posts=latest_posts,
             members=featured_members,
-            hero_image_url=hero_image_url,
+            hero_images=hero_image_urls,
+            hero_image_url=hero_image_urls[0],
             contact_email=settings.contact_email,
             contact_address=settings.contact_address,
         ),

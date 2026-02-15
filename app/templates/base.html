@@ -73,6 +73,9 @@
       </div>
     </footer>
     {% block scripts %}
+    {% if request.url.path == '/' %}
+    <script src="{{ url_for('static', path='js/hero_slider.js') }}" defer></script>
+    {% endif %}
     {% if 'admin' not in body_class_value %}
     <script src="{{ url_for('static', path='js/publications_filter.js') }}" defer></script>
     {% endif %}

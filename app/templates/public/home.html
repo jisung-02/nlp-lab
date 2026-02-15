@@ -18,7 +18,33 @@
       </div>
     </div>
     <div class="hero-visual">
-      <img src="{{ hero_image_url }}" alt="Lab view" loading="lazy" />
+      <div
+        class="hero-slider"
+        data-autoplay="7000"
+        aria-label="{% if is_en %}Home hero slideshow{% else %}메인 배너 슬라이드{% endif %}"
+      >
+        <div id="hero-slideshow" class="hero-slides">
+          {% for hero_image_url in hero_images %}
+          <article class="hero-slide {% if loop.first %}is-active{% endif %}" data-index="{{ loop.index0 }}">
+            <img src="{{ hero_image_url }}" alt="{% if is_en %}Lab scene {{ loop.index }}{% else %}연구실 이미지 {{ loop.index }}{% endif %}" loading="lazy" />
+            <span class="sr-only">{{ hero_image_url }}</span>
+          </article>
+          {% endfor %}
+        </div>
+        <button class="hero-nav hero-nav-prev" type="button" aria-label="{% if is_en %}Previous slide{% else %}이전 슬라이드{% endif %}">‹</button>
+        <button class="hero-nav hero-nav-next" type="button" aria-label="{% if is_en %}Next slide{% else %}다음 슬라이드{% endif %}">›</button>
+        <div class="hero-dots">
+          {% for hero_image_url in hero_images %}
+          <button
+            class="hero-dot {% if loop.first %}is-active{% endif %}"
+            type="button"
+            aria-label="{% if is_en %}Go to slide {% else %}슬라이드 {% endif %}{{ loop.index }}"
+            aria-controls="hero-slideshow"
+            data-slide-index="{{ loop.index0 }}"
+          ></button>
+          {% endfor %}
+        </div>
+      </div>
     </div>
   </div>
 </section>
