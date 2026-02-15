@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlmodel import Session
 
 from app.core.constants import HOME_HERO_IMAGE_POST_SLUG
@@ -26,17 +26,13 @@ def parse_post_create_input(
 ) -> PostCreateInput | None:
     """Return validated create payload or ``None``."""
 
-    try:
-        return PostCreateInput.model_validate(
-            {
-                "title": title,
-                "slug": slug,
-                "content": content,
-                "is_published": is_published,
-            }
-        )
-    except ValidationError:
-        return None
+    return _parse_post_input(
+        PostCreateInput,
+        title=title,
+        slug=slug,
+        content=content,
+        is_published=is_published,
+    )
 
 
 def parse_post_update_input(
@@ -48,8 +44,25 @@ def parse_post_update_input(
 ) -> PostUpdateInput | None:
     """Return validated update payload or ``None``."""
 
+    return _parse_post_input(
+        PostUpdateInput,
+        title=title,
+        slug=slug,
+        content=content,
+        is_published=is_published,
+    )
+
+
+def _parse_post_input[TInputModel: BaseModel](
+    model_class: type[TInputModel],
+    *,
+    title: str,
+    slug: str,
+    content: str,
+    is_published: str,
+) -> TInputModel | None:
     try:
-        return PostUpdateInput.model_validate(
+        return model_class.model_validate(
             {
                 "title": title,
                 "slug": slug,

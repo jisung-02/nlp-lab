@@ -33,6 +33,7 @@ _UNSUPPORTED_HERO_IMAGE_SCHEMES = ("http://", "https://")
 _MAX_HERO_IMAGE_BYTES = 8 * 1024 * 1024
 _HERO_IMAGE_DIR = Path(__file__).resolve().parents[1] / "static" / "images" / "hero"
 _HERO_IMAGE_WEB_PATH = "/static/images/hero"
+_HERO_IMAGE_WEB_PREFIX = f"{_HERO_IMAGE_WEB_PATH}/"
 _HERO_IMAGE_DEFAULT_URL = f"{_HERO_IMAGE_WEB_PATH}/hero.jpg"
 
 
@@ -55,8 +56,7 @@ def create_post(
     is_published: Annotated[str, Form()] = "true",
     csrf_token: Annotated[str, Form()] = "",
 ):
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    _validate_or_raise_csrf(request, csrf_token)
 
     content_to_save = content
     if slug == HOME_HERO_IMAGE_POST_SLUG:
@@ -118,8 +118,7 @@ def update_post(
     is_published: Annotated[str, Form()] = "true",
     csrf_token: Annotated[str, Form()] = "",
 ):
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    _validate_or_raise_csrf(request, csrf_token)
 
     content_to_save = content
     if slug == HOME_HERO_IMAGE_POST_SLUG:
@@ -173,8 +172,7 @@ def delete_post(
     session: Annotated[Session, Depends(get_session)],
     csrf_token: Annotated[str, Form()] = "",
 ):
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    _validate_or_raise_csrf(request, csrf_token)
 
     error_message = post_service.delete_post(session, id)
     if error_message is not None:
@@ -211,9 +209,7 @@ def _render_posts_page(
     if not display_hero_image_urls:
         display_hero_image_urls = [default_hero_image_url]
     hero_image_edit_items = _build_hero_image_edit_items(display_hero_image_urls)
-    hero_image_url = (
-        display_hero_image_urls[0]
-    )
+    hero_image_url = display_hero_image_urls[0]
     hero_image_content = "\n".join(display_hero_image_urls)
     return templates.TemplateResponse(
         request,
@@ -327,14 +323,13 @@ def _join_hero_image_urls(urls: list[str]) -> str:
 def _build_hero_image_edit_items(
     hero_image_urls: Sequence[str],
 ) -> list[dict[str, str | bool]]:
-    renameable_url_prefix = f"{_HERO_IMAGE_WEB_PATH}/"
     items: list[dict[str, str | bool]] = []
 
     for hero_image_url in hero_image_urls:
-        if not hero_image_url.startswith(renameable_url_prefix):
+        if not hero_image_url.startswith(_HERO_IMAGE_WEB_PREFIX):
             continue
 
-        filename = hero_image_url.removeprefix(renameable_url_prefix)
+        filename = hero_image_url.removeprefix(_HERO_IMAGE_WEB_PREFIX)
         if not filename:
             continue
         is_default_image = _is_default_hero_image_url(hero_image_url)
@@ -353,7 +348,7 @@ def _build_hero_image_edit_items(
 def _save_hero_image_files(
     hero_image_files: Sequence[UploadFile],
 ) -> tuple[list[str], str | None]:
-    if len(hero_image_files) == 0:
+    if not hero_image_files:
         return [], None
 
     _HERO_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
@@ -405,9 +400,7 @@ def _make_unique_hero_image_filename(uploaded_filename: str) -> str:
     filename = Path(uploaded_filename).name
     stem = filename.removesuffix(Path(filename).suffix)
     extension = Path(filename).suffix.lower()
-    safe_stem = re.sub(r"[^a-zA-Z0-9가-힣._-]", "-", stem).strip("-")
-    if not safe_stem:
-        safe_stem = "hero-image"
+    safe_stem = _sanitize_hero_image_stem(stem)
 
     file_name = f"{safe_stem[:80]}{extension}"
     target_path = _HERO_IMAGE_DIR / file_name
@@ -490,10 +483,10 @@ def _remove_hero_image_urls(
     hero_image_remove_urls: Sequence[str],
     rename_map: dict[str, str],
 ) -> list[str]:
-    removed_urls = _collect_removable_hero_image_urls(hero_image_remove_urls)
-    for old_url, new_url in rename_map.items():
-        if old_url in removed_urls:
-            removed_urls.add(new_url)
+    removed_urls = _collect_removed_urls_for_cleanup(
+        hero_image_remove_urls=hero_image_remove_urls,
+        rename_map=rename_map,
+    )
 
     if not removed_urls:
         return hero_image_urls
@@ -506,7 +499,7 @@ def _delete_hero_image_files(hero_image_urls: Sequence[str]) -> None:
         if not _is_removable_hero_image_url(hero_image_url):
             continue
 
-        file_name = hero_image_url.removeprefix(f"{_HERO_IMAGE_WEB_PATH}/")
+        file_name = hero_image_url.removeprefix(_HERO_IMAGE_WEB_PREFIX)
         if not file_name or Path(file_name).name != file_name:
             continue
 
@@ -526,18 +519,18 @@ def _is_removable_hero_image_url(hero_image_url: str) -> bool:
 
 
 def _is_hero_image_file_url(hero_image_url: str) -> bool:
-    if not hero_image_url.startswith(f"{_HERO_IMAGE_WEB_PATH}/"):
+    if not hero_image_url.startswith(_HERO_IMAGE_WEB_PREFIX):
         return False
 
-    file_name = hero_image_url.removeprefix(f"{_HERO_IMAGE_WEB_PATH}/")
+    file_name = hero_image_url.removeprefix(_HERO_IMAGE_WEB_PREFIX)
     return bool(file_name) and Path(file_name).name == file_name
 
 
 def _rename_hero_image_file(old_url: str, new_name: str) -> tuple[str, str | None]:
-    if not old_url.startswith(f"{_HERO_IMAGE_WEB_PATH}/"):
+    if not old_url.startswith(_HERO_IMAGE_WEB_PREFIX):
         return "", "히어로 이미지는 hero 폴더 경로에서만 파일명을 변경할 수 있습니다."
 
-    old_path = _HERO_IMAGE_DIR / old_url.removeprefix(f"{_HERO_IMAGE_WEB_PATH}/")
+    old_path = _HERO_IMAGE_DIR / old_url.removeprefix(_HERO_IMAGE_WEB_PREFIX)
     if not old_path.exists():
         return "", "기존 히어로 이미지를 찾을 수 없습니다."
 
@@ -553,13 +546,7 @@ def _rename_hero_image_file(old_url: str, new_name: str) -> tuple[str, str | Non
         return "", "이미지 확장자는 jpg, jpeg, png, webp, gif만 허용합니다."
 
     requested_stem = Path(requested_filename).stem
-    safe_stem = re.sub(r"[^a-zA-Z0-9가-힣._-]", "-", requested_stem).strip("-")
-    if not safe_stem:
-        safe_stem = old_path.stem
-
-    safe_stem = re.sub(r"[^a-zA-Z0-9가-힣._-]", "-", safe_stem).strip("-")
-    if not safe_stem:
-        safe_stem = "hero-image"
+    safe_stem = _sanitize_hero_image_stem(requested_stem, fallback=old_path.stem)
 
     target_filename = f"{safe_stem[:80]}{extension}"
     target_path = _HERO_IMAGE_DIR / target_filename
@@ -579,10 +566,10 @@ def _hero_image_file_exists(hero_image_url: str) -> bool:
     if _is_default_hero_image_url(hero_image_url):
         return True
 
-    if not hero_image_url.startswith(f"{_HERO_IMAGE_WEB_PATH}/"):
+    if not hero_image_url.startswith(_HERO_IMAGE_WEB_PREFIX):
         return True
 
-    file_name = hero_image_url.removeprefix(f"{_HERO_IMAGE_WEB_PATH}/")
+    file_name = hero_image_url.removeprefix(_HERO_IMAGE_WEB_PREFIX)
     if not file_name:
         return False
 
@@ -595,3 +582,20 @@ def _hero_image_file_exists(hero_image_url: str) -> bool:
 
 def _is_default_hero_image_url(hero_image_url: str) -> bool:
     return hero_image_url in (_HERO_IMAGE_DEFAULT_URL, "/static/images/hero.jpg")
+
+
+def _sanitize_hero_image_stem(raw_stem: str, *, fallback: str = "hero-image") -> str:
+    sanitized_stem = re.sub(r"[^a-zA-Z0-9가-힣._-]", "-", raw_stem).strip("-")
+    if sanitized_stem:
+        return sanitized_stem
+
+    sanitized_fallback = re.sub(r"[^a-zA-Z0-9가-힣._-]", "-", fallback).strip("-")
+    if sanitized_fallback:
+        return sanitized_fallback
+
+    return "hero-image"
+
+
+def _validate_or_raise_csrf(request: Request, csrf_token: str) -> None:
+    if not validate_csrf_token(request, csrf_token):
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")

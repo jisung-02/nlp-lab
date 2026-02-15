@@ -35,8 +35,7 @@ def create_project(
     end_date: Annotated[str | None, Form()] = None,
     csrf_token: Annotated[str, Form()] = "",
 ):
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    _validate_or_raise_csrf(request, csrf_token)
 
     create_input = project_service.parse_project_create_input(
         title=title,
@@ -81,8 +80,7 @@ def update_project(
     end_date: Annotated[str | None, Form()] = None,
     csrf_token: Annotated[str, Form()] = "",
 ):
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    _validate_or_raise_csrf(request, csrf_token)
 
     update_input = project_service.parse_project_update_input(
         title=title,
@@ -120,8 +118,7 @@ def delete_project(
     session: Annotated[Session, Depends(get_session)],
     csrf_token: Annotated[str, Form()] = "",
 ):
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    _validate_or_raise_csrf(request, csrf_token)
 
     error_message = project_service.delete_project(session, id)
     if error_message is not None:
@@ -156,3 +153,8 @@ def _render_projects_page(
         },
         status_code=status_code,
     )
+
+
+def _validate_or_raise_csrf(request: Request, csrf_token: str) -> None:
+    if not validate_csrf_token(request, csrf_token):
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")

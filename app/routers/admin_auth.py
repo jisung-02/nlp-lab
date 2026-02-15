@@ -43,8 +43,7 @@ def login(
     password: Annotated[str, Form()],
     csrf_token: Annotated[str, Form()],
 ):
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    _validate_or_raise_csrf(request, csrf_token)
 
     login_input = parse_login_input(username=username, password=password, csrf_token=csrf_token)
     if login_input is None:
@@ -72,8 +71,7 @@ def login(
 
 @router.post("/logout")
 def logout(request: Request, csrf_token: Annotated[str, Form()]):
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    _validate_or_raise_csrf(request, csrf_token)
     logout_admin(request)
     return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -117,3 +115,8 @@ def _render_login_page(
         },
         status_code=status_code,
     )
+
+
+def _validate_or_raise_csrf(request: Request, csrf_token: str) -> None:
+    if not validate_csrf_token(request, csrf_token):
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")

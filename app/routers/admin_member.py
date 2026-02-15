@@ -34,8 +34,7 @@ def create_member(
     display_order: Annotated[str, Form()] = "100",
     csrf_token: Annotated[str, Form()] = "",
 ):
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    _validate_or_raise_csrf(request, csrf_token)
 
     create_input = member_service.parse_member_create_input(
         name=name,
@@ -78,8 +77,7 @@ def update_member(
     display_order: Annotated[str, Form()] = "100",
     csrf_token: Annotated[str, Form()] = "",
 ):
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    _validate_or_raise_csrf(request, csrf_token)
 
     update_input = member_service.parse_member_update_input(
         name=name,
@@ -116,8 +114,7 @@ def delete_member(
     session: Annotated[Session, Depends(get_session)],
     csrf_token: Annotated[str, Form()] = "",
 ):
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    _validate_or_raise_csrf(request, csrf_token)
 
     error_message = member_service.delete_member(session, id)
     if error_message is not None:
@@ -152,3 +149,8 @@ def _render_members_page(
         },
         status_code=status_code,
     )
+
+
+def _validate_or_raise_csrf(request: Request, csrf_token: str) -> None:
+    if not validate_csrf_token(request, csrf_token):
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")
