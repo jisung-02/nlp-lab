@@ -73,37 +73,48 @@
       <ul class="entity-list">
         {% for publication in publications %}
         <li class="entity-card card">
-          <div class="entity-actions">
-            <form action="/admin/publications/{{ publication.id }}/update" method="post" class="admin-form form-grid">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-              <label class="full-row">제목 <input type="text" name="title" value="{{ publication.title }}" maxlength="300" required /></label>
-              <label>저자 <input type="text" name="authors" value="{{ publication.authors }}" maxlength="500" required /></label>
-              <label>학회/저널 <input type="text" name="venue" value="{{ publication.venue }}" maxlength="255" required /></label>
-              <label>연도 <input type="number" name="year" value="{{ publication.year }}" min="1900" max="3000" required /></label>
-              <label>링크 <input type="url" name="link" value="{{ publication.link or '' }}" maxlength="500" /></label>
-              <label>
-                연결 프로젝트
-                <select name="related_project_id">
-                  <option value="">없음</option>
-                  {% for project in projects %}
-                  <option value="{{ project.id }}" {% if publication.related_project_id == project.id %}selected{% endif %}>{{ project.title }}</option>
-                  {% endfor %}
-                </select>
-              </label>
-              <div class="form-actions full-row">
-                <button type="submit" class="btn">수정</button>
+          <details class="entity-detail">
+            <summary class="entity-summary">
+              <span>
+                <strong class="entity-summary-title">{{ publication.title }}</strong>
+                <span class="entity-summary-meta">{{ publication.year }} · {{ publication.venue }}</span>
+              </span>
+            </summary>
+            <div class="entity-detail-body">
+              <div class="entity-fulltext">{{ publication.authors }}{% if publication.link %} · {{ publication.link }}{% endif %}</div>
+              <div class="entity-actions">
+                <form action="/admin/publications/{{ publication.id }}/update" method="post" class="admin-form form-grid">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                  <label class="full-row">제목 <input type="text" name="title" value="{{ publication.title }}" maxlength="300" required /></label>
+                  <label>저자 <input type="text" name="authors" value="{{ publication.authors }}" maxlength="500" required /></label>
+                  <label>학회/저널 <input type="text" name="venue" value="{{ publication.venue }}" maxlength="255" required /></label>
+                  <label>연도 <input type="number" name="year" value="{{ publication.year }}" min="1900" max="3000" required /></label>
+                  <label>링크 <input type="url" name="link" value="{{ publication.link or '' }}" maxlength="500" /></label>
+                  <label>
+                    연결 프로젝트
+                    <select name="related_project_id">
+                      <option value="">없음</option>
+                      {% for project in projects %}
+                      <option value="{{ project.id }}" {% if publication.related_project_id == project.id %}selected{% endif %}>{{ project.title }}</option>
+                      {% endfor %}
+                    </select>
+                  </label>
+                  <div class="form-actions full-row">
+                    <button type="submit" class="btn">수정</button>
+                  </div>
+                </form>
+                <form
+                  action="/admin/publications/{{ publication.id }}/delete"
+                  method="post"
+                  class="inline-form"
+                  data-confirm-delete="논문을 삭제하시겠습니까?"
+                >
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                  <button type="submit" class="btn btn-danger">삭제</button>
+                </form>
               </div>
-            </form>
-            <form
-              action="/admin/publications/{{ publication.id }}/delete"
-              method="post"
-              class="inline-form"
-              data-confirm-delete="논문을 삭제하시겠습니까?"
-            >
-              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-              <button type="submit" class="btn btn-danger">삭제</button>
-            </form>
-          </div>
+            </div>
+          </details>
         </li>
         {% endfor %}
       </ul>

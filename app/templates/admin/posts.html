@@ -179,33 +179,44 @@
       <ul class="entity-list">
         {% for post in posts %}
         <li class="entity-card card">
-          <div class="entity-actions">
-            <form action="/admin/posts/{{ post.id }}/update" method="post" class="admin-form form-grid">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-              <label>제목 <input type="text" name="title" value="{{ post.title }}" maxlength="200" required /></label>
-              <label>Slug <input type="text" name="slug" value="{{ post.slug }}" maxlength="150" required /></label>
-              <label class="full-row">내용 <textarea name="content" maxlength="12000" required>{{ post.content }}</textarea></label>
-              <label>
-                공개 여부
-                <select name="is_published" required>
-                  <option value="true" {% if post.is_published %}selected{% endif %}>true</option>
-                  <option value="false" {% if not post.is_published %}selected{% endif %}>false</option>
-                </select>
-              </label>
-              <div class="form-actions full-row">
-                <button type="submit" class="btn">수정</button>
+          <details class="entity-detail">
+            <summary class="entity-summary">
+              <span>
+                <strong class="entity-summary-title">{{ post.title }}</strong>
+                <span class="entity-summary-meta">{{ post.slug }} · {{ "published" if post.is_published else "draft" }}</span>
+              </span>
+            </summary>
+            <div class="entity-detail-body">
+              <div class="entity-fulltext">{{ post.content }}</div>
+              <div class="entity-actions">
+                <form action="/admin/posts/{{ post.id }}/update" method="post" class="admin-form form-grid">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                  <label>제목 <input type="text" name="title" value="{{ post.title }}" maxlength="200" required /></label>
+                  <label>Slug <input type="text" name="slug" value="{{ post.slug }}" maxlength="150" required /></label>
+                  <label class="full-row">내용 <textarea name="content" maxlength="12000" required>{{ post.content }}</textarea></label>
+                  <label>
+                    공개 여부
+                    <select name="is_published" required>
+                      <option value="true" {% if post.is_published %}selected{% endif %}>true</option>
+                      <option value="false" {% if not post.is_published %}selected{% endif %}>false</option>
+                    </select>
+                  </label>
+                  <div class="form-actions full-row">
+                    <button type="submit" class="btn">수정</button>
+                  </div>
+                </form>
+                <form
+                  action="/admin/posts/{{ post.id }}/delete"
+                  method="post"
+                  class="inline-form"
+                  data-confirm-delete="게시글을 삭제하시겠습니까?"
+                >
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                  <button type="submit" class="btn btn-danger">삭제</button>
+                </form>
               </div>
-            </form>
-            <form
-              action="/admin/posts/{{ post.id }}/delete"
-              method="post"
-              class="inline-form"
-              data-confirm-delete="게시글을 삭제하시겠습니까?"
-            >
-              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-              <button type="submit" class="btn btn-danger">삭제</button>
-            </form>
-          </div>
+            </div>
+          </details>
         </li>
         {% endfor %}
       </ul>

@@ -73,37 +73,48 @@
       <ul class="entity-list">
         {% for project in projects %}
         <li class="entity-card card">
-          <div class="entity-actions">
-            <form action="/admin/projects/{{ project.id }}/update" method="post" class="admin-form form-grid">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-              <label>제목 <input type="text" name="title" value="{{ project.title }}" maxlength="200" required /></label>
-              <label>Slug <input type="text" name="slug" value="{{ project.slug }}" maxlength="150" required /></label>
-              <label class="full-row">요약 <input type="text" name="summary" value="{{ project.summary }}" maxlength="300" required /></label>
-              <label class="full-row">설명 <textarea name="description" maxlength="8000" required>{{ project.description }}</textarea></label>
-              <label>
-                상태
-                <select name="status" required>
-                  {% for status in statuses %}
-                  <option value="{{ status.value }}" {% if project.status == status %}selected{% endif %}>{{ status.value }}</option>
-                  {% endfor %}
-                </select>
-              </label>
-              <label>시작일 <input type="date" name="start_date" value="{{ project.start_date.isoformat() }}" required /></label>
-              <label>종료일 <input type="date" name="end_date" value="{{ project.end_date.isoformat() if project.end_date else '' }}" /></label>
-              <div class="form-actions full-row">
-                <button type="submit" class="btn">수정</button>
+          <details class="entity-detail">
+            <summary class="entity-summary">
+              <span>
+                <strong class="entity-summary-title">{{ project.title }}</strong>
+                <span class="entity-summary-meta">{{ project.status.value }} · {{ project.slug }}</span>
+              </span>
+            </summary>
+            <div class="entity-detail-body">
+              <div class="entity-fulltext">{{ project.description }}</div>
+              <div class="entity-actions">
+                <form action="/admin/projects/{{ project.id }}/update" method="post" class="admin-form form-grid">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                  <label>제목 <input type="text" name="title" value="{{ project.title }}" maxlength="200" required /></label>
+                  <label>Slug <input type="text" name="slug" value="{{ project.slug }}" maxlength="150" required /></label>
+                  <label class="full-row">요약 <input type="text" name="summary" value="{{ project.summary }}" maxlength="300" required /></label>
+                  <label class="full-row">설명 <textarea name="description" maxlength="8000" required>{{ project.description }}</textarea></label>
+                  <label>
+                    상태
+                    <select name="status" required>
+                      {% for status in statuses %}
+                      <option value="{{ status.value }}" {% if project.status == status %}selected{% endif %}>{{ status.value }}</option>
+                      {% endfor %}
+                    </select>
+                  </label>
+                  <label>시작일 <input type="date" name="start_date" value="{{ project.start_date.isoformat() }}" required /></label>
+                  <label>종료일 <input type="date" name="end_date" value="{{ project.end_date.isoformat() if project.end_date else '' }}" /></label>
+                  <div class="form-actions full-row">
+                    <button type="submit" class="btn">수정</button>
+                  </div>
+                </form>
+                <form
+                  action="/admin/projects/{{ project.id }}/delete"
+                  method="post"
+                  class="inline-form"
+                  data-confirm-delete="프로젝트를 삭제하시겠습니까?"
+                >
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                  <button type="submit" class="btn btn-danger">삭제</button>
+                </form>
               </div>
-            </form>
-            <form
-              action="/admin/projects/{{ project.id }}/delete"
-              method="post"
-              class="inline-form"
-              data-confirm-delete="프로젝트를 삭제하시겠습니까?"
-            >
-              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-              <button type="submit" class="btn btn-danger">삭제</button>
-            </form>
-          </div>
+            </div>
+          </details>
         </li>
         {% endfor %}
       </ul>
