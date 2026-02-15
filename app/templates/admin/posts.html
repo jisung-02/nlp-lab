@@ -42,6 +42,8 @@
       <form
         action="{% if hero_image_post %}/admin/posts/{{ hero_image_post.id }}/update{% else %}/admin/posts{% endif %}"
         method="post"
+        enctype="multipart/form-data"
+        id="hero-image-form"
         class="admin-form form-grid"
       >
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
@@ -49,16 +51,95 @@
         <input type="hidden" name="slug" value="{{ home_hero_image_slug }}" />
         <input type="hidden" name="is_published" value="false" />
         <label class="full-row">
-          이미지 URL 또는 경로
-          <input
-            type="text"
+          배너 이미지 URL 목록 (줄바꿈으로 구분)
+          <textarea
+            id="hero-image-content"
             name="content"
-            value="{{ hero_image_url }}"
+            class="hero-image-input"
+            rows="6"
             maxlength="12000"
-            placeholder="{{ hero_image_default_url }}"
-            required
-          />
+            placeholder="{{ hero_image_default_url }}\n{{ hero_image_default_url }}"
+          >{{ hero_image_content }}</textarea>
         </label>
+        <p class="meta-line full-row">
+          줄바꿈으로 여러 URL을 입력하면 순서대로 자동 전환됩니다.
+        </p>
+        <div class="full-row hero-upload-block">
+          <p class="meta-line">또는 이미지 파일로 추가</p>
+          <div id="hero-image-dropzone" class="hero-upload-dropzone" tabindex="0">
+            <input
+              id="hero-image-files"
+              type="file"
+              name="hero_image_files"
+              accept="image/*"
+              multiple
+            />
+            <p>이미지를 여기에 드래그하거나</p>
+            <button type="button" id="hero-image-picker" class="btn btn-secondary">파일 탐색</button>
+            <p class="meta-line">허용 형식: JPG, JPEG, PNG, WebP, GIF · 최대 8MB</p>
+          </div>
+          <div id="hero-image-preview" class="hero-upload-preview" aria-live="polite">
+            {% if hero_image_edit_items %}
+            <div class="hero-image-panel-meta">
+              <p class="meta-line">
+                이미지 삭제/이름 수정
+              </p>
+              <p class="meta-line hero-image-delete-summary" id="hero-image-delete-summary">
+                삭제 대상: 0개
+              </p>
+            </div>
+            <div class="hero-image-rename-list">
+              {% for item in hero_image_edit_items %}
+              <div class="hero-image-rename-item">
+                <label class="hero-image-row">
+                  <input
+                    type="checkbox"
+                    name="hero_image_remove_urls"
+                    value="{{ item.url }}"
+                    aria-label="이미지 삭제"
+                    {% if not item.can_remove %}disabled{% endif %}
+                  />
+                  <span class="hero-image-thumb-wrap">
+                    <img src="{{ item.url }}" alt="" loading="lazy" />
+                  </span>
+                  <span class="hero-image-old-name" title="{{ item.url }}">{{ item.filename }}</span>
+                  {% if not item.can_remove %}
+                  <span class="hero-image-default-tag">기본 이미지</span>
+                  {% endif %}
+                </label>
+                {% if item.can_rename %}
+                <div class="hero-image-rename-control">
+                  <input
+                    type="hidden"
+                    name="hero_image_existing_urls"
+                    value="{{ item.url }}"
+                  />
+                  <label class="hero-image-filename-label">
+                    파일명
+                    <input
+                      type="text"
+                      class="hero-image-name-input"
+                      name="hero_image_filenames"
+                      value="{{ item.filename }}"
+                      aria-label="이미지 파일명 수정"
+                    />
+                  </label>
+                </div>
+                {% else %}
+                <div class="hero-image-rename-control">
+                  <span class="meta-line">파일명은 기본 이미지로 고정</span>
+                </div>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+            {% elif hero_image_urls %}
+            <p class="meta-line">현재 등록된 파일: {{ hero_image_urls | length }}개</p>
+            {% else %}
+            <p class="meta-line">선택된 파일 없음</p>
+            {% endif %}
+          </div>
+        </div>
         <div class="form-actions full-row">
           <button type="submit" class="btn">저장</button>
         </div>

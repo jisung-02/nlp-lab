@@ -6,6 +6,7 @@ import asyncio
 import re
 from datetime import date
 from http.cookies import SimpleCookie
+from pathlib import Path
 from urllib.parse import urlencode
 
 import pytest
@@ -22,6 +23,7 @@ from app.models.admin_user import AdminUser
 from app.models.post import Post
 from app.models.project import Project
 from app.models.publication import Publication
+from app.routers import admin_post
 
 
 def _header_value(headers: list[tuple[str, str]], name: str) -> str | None:
@@ -500,7 +502,7 @@ def test_home_hero_image_create_update_flow_via_posts_crud(app_and_engine):
         form={
             "title": "홈 히어로 이미지",
             "slug": HOME_HERO_IMAGE_POST_SLUG,
-            "content": "/static/images/hero-new.jpg",
+            "content": "/static/images/hero-new.jpg\n/static/images/hero-new-2.jpg",
             "is_published": "false",
             "csrf_token": csrf_token,
         },
@@ -515,7 +517,7 @@ def test_home_hero_image_create_update_flow_via_posts_crud(app_and_engine):
             select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)
         ).first()
         assert hero_post is not None
-        assert hero_post.content == "/static/images/hero-new.jpg"
+        assert hero_post.content == "/static/images/hero-new.jpg\n/static/images/hero-new-2.jpg"
         assert hero_post.is_published is False
         hero_post_id = hero_post.id
 
@@ -529,7 +531,7 @@ def test_home_hero_image_create_update_flow_via_posts_crud(app_and_engine):
         form={
             "title": "홈 히어로 이미지",
             "slug": HOME_HERO_IMAGE_POST_SLUG,
-            "content": "/static/images/hero-updated.jpg",
+            "content": "/static/images/hero-updated.jpg\n/static/images/hero-updated-2.jpg",
             "is_published": "false",
             "csrf_token": csrf_token,
         },
@@ -542,12 +544,686 @@ def test_home_hero_image_create_update_flow_via_posts_crud(app_and_engine):
     with Session(engine) as session:
         updated_hero_post = session.get(Post, hero_post_id)
         assert updated_hero_post is not None
-        assert updated_hero_post.content == "/static/images/hero-updated.jpg"
+        assert (
+            updated_hero_post.content
+            == "/static/images/hero-updated.jpg\n/static/images/hero-updated-2.jpg"
+        )
         assert updated_hero_post.is_published is False
 
     status_code, _, body = _request(app, "GET", "/")
     assert status_code == 200
     assert 'src="/static/images/hero-updated.jpg"' in body
+    assert "/static/images/hero-updated-2.jpg" in body
+
+
+def test_home_hero_image_create_with_empty_content_uses_default(app_and_engine):
+    app, engine = app_and_engine
+    cookie_jar: dict[str, str] = {}
+    _login_as_admin(app, cookie_jar)
+    csrf_token = _get_csrf_token(app, cookie_jar, "/admin/posts")
+
+    status_code, headers, _ = _request(
+        app,
+        "POST",
+        "/admin/posts",
+        form={
+            "title": "홈 히어로 이미지",
+            "slug": HOME_HERO_IMAGE_POST_SLUG,
+            "content": "",
+            "is_published": "false",
+            "csrf_token": csrf_token,
+        },
+        cookies=cookie_jar,
+    )
+
+    assert status_code == 303
+    assert _header_value(headers, "location") == "/admin/posts"
+
+    with Session(engine) as session:
+        hero_post = session.exec(
+            select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)
+        ).first()
+        assert hero_post is not None
+        assert hero_post.content == "/static/images/hero/hero.jpg"
+
+    status_code, _, body = _request(app, "GET", "/")
+    assert status_code == 200
+    assert 'src="/static/images/hero/hero.jpg"' in body
+
+
+def test_home_hero_image_upload_uses_uploaded_filename(app_and_engine):
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    app, engine = app_and_engine
+    client = TestClient(app)
+
+    login_body = client.get("/admin/login").text
+    login_csrf_token = _extract_csrf_token(login_body)
+    response = client.post(
+        "/admin/login",
+        data={
+            "username": "admin",
+            "password": "test-password",
+            "csrf_token": login_csrf_token,
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin"
+
+    posts_body = client.get("/admin/posts").text
+    posts_csrf_token = _extract_csrf_token(posts_body)
+
+    response = client.post(
+        "/admin/posts",
+        data={
+            "title": "홈 히어로 이미지",
+            "slug": HOME_HERO_IMAGE_POST_SLUG,
+            "content": "",
+            "is_published": "false",
+            "csrf_token": posts_csrf_token,
+        },
+        files={
+            "hero_image_files": (
+                "rename-able-name.png",
+                b"\x89PNG\r\n\x1a\n" + b"1" * 16,
+                "image/png",
+            )
+        },
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/posts"
+
+    with Session(engine) as session:
+        hero_post = session.exec(
+            select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)
+        ).first()
+        assert hero_post is not None
+        assert hero_post.content == "/static/images/rename-able-name.png"
+
+        image_path = (
+            Path(__file__).resolve().parents[1]
+            / "app/static/images/hero/rename-able-name.png"
+        )
+        if image_path.exists():
+            image_path.unlink()
+
+
+def test_home_hero_image_upload_keeps_fallback(app_and_engine):
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    app, engine = app_and_engine
+    client = TestClient(app)
+
+    login_body = client.get("/admin/login").text
+    login_csrf_token = _extract_csrf_token(login_body)
+    response = client.post(
+        "/admin/login",
+        data={
+            "username": "admin",
+            "password": "test-password",
+            "csrf_token": login_csrf_token,
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin"
+
+    posts_body = client.get("/admin/posts").text
+    posts_csrf_token = _extract_csrf_token(posts_body)
+
+    response = client.post(
+        "/admin/posts",
+        data={
+            "title": "홈 히어로 이미지",
+            "slug": HOME_HERO_IMAGE_POST_SLUG,
+            "content": "/static/images/hero/hero.jpg",
+            "is_published": "false",
+            "csrf_token": posts_csrf_token,
+        },
+        files={
+            "hero_image_files": (
+                "fallback-append.png",
+                b"\x89PNG\r\n\x1a\n" + b"6" * 16,
+                "image/png",
+            )
+        },
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/posts"
+
+    hero_image_path = None
+    uploaded_image_url: str | None = None
+
+    try:
+        with Session(engine) as session:
+            hero_post = session.exec(
+                select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)
+            ).first()
+            assert hero_post is not None
+            hero_urls = [line for line in hero_post.content.splitlines() if line.strip()]
+            assert hero_urls[0] == "/static/images/hero/hero.jpg"
+            assert len(hero_urls) == 2
+            uploaded_image_url = hero_urls[1]
+            assert uploaded_image_url.startswith("/static/images/hero/")
+            assert uploaded_image_url.endswith(".png")
+
+            hero_image_path = (
+                Path(__file__).resolve().parents[1]
+                / "app/static/images/hero"
+                / uploaded_image_url.removeprefix("/static/images/hero/")
+            )
+            assert hero_image_path.exists()
+
+        home_body = client.get("/")
+        assert home_body.status_code == 200
+        assert f'src="{hero_urls[0]}"' in home_body.text
+        assert f'src="{hero_urls[1]}"' in home_body.text
+    finally:
+        if hero_image_path is not None and hero_image_path.exists():
+            hero_image_path.unlink()
+
+
+def test_home_hero_image_rename_uploaded_filename(app_and_engine):
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    app, engine = app_and_engine
+    client = TestClient(app)
+
+    login_body = client.get("/admin/login").text
+    login_csrf_token = _extract_csrf_token(login_body)
+    response = client.post(
+        "/admin/login",
+        data={
+            "username": "admin",
+            "password": "test-password",
+            "csrf_token": login_csrf_token,
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin"
+
+    posts_body = client.get("/admin/posts").text
+    posts_csrf_token = _extract_csrf_token(posts_body)
+
+    response = client.post(
+        "/admin/posts",
+        data={
+            "title": "홈 히어로 이미지",
+            "slug": HOME_HERO_IMAGE_POST_SLUG,
+            "content": "",
+            "is_published": "false",
+            "csrf_token": posts_csrf_token,
+        },
+        files={
+            "hero_image_files": (
+                "rename-me-before.png",
+                b"\x89PNG\r\n\x1a\n" + b"2" * 16,
+                "image/png",
+            )
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/posts"
+
+    with Session(engine) as session:
+        hero_post = session.exec(
+            select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)
+        ).first()
+        assert hero_post is not None
+        assert hero_post.content.startswith("/static/images/hero/")
+        hero_post_id = hero_post.id
+
+    posts_body = client.get("/admin/posts").text
+    posts_csrf_token = _extract_csrf_token(posts_body)
+
+    with Session(engine) as session:
+        hero_post = session.get(Post, hero_post_id)
+        assert hero_post is not None
+        old_url = hero_post.content.strip()
+        old_image_path = (
+            Path(__file__).resolve().parents[1]
+            / "app/static/images/hero"
+            / old_url.removeprefix("/static/images/hero/")
+        )
+        assert old_image_path.exists()
+
+    response = client.post(
+        f"/admin/posts/{hero_post_id}/update",
+        data={
+            "title": "홈 히어로 이미지",
+            "slug": HOME_HERO_IMAGE_POST_SLUG,
+            "content": old_url,
+            "is_published": "false",
+            "csrf_token": posts_csrf_token,
+            "hero_image_existing_urls": [old_url],
+            "hero_image_filenames": ["renamed-hero.png"],
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/posts"
+
+    with Session(engine) as session:
+        hero_post = session.get(Post, hero_post_id)
+        assert hero_post is not None
+        assert hero_post.content == "/static/images/hero/renamed-hero.png"
+
+    response = client.get("/")
+    assert response.status_code == 200
+    assert 'src="/static/images/hero/renamed-hero.png"' in response.text
+
+    with Session(engine) as session:
+        hero_post = session.get(Post, hero_post_id)
+        assert hero_post is not None
+        old_renamed_path = (
+            Path(__file__).resolve().parents[1]
+            / "app/static/images/hero/renamed-hero.png"
+        )
+        if old_image_path.exists():
+            old_image_path.unlink()
+        if old_renamed_path.exists():
+            old_renamed_path.unlink()
+
+
+def test_admin_posts_page_removes_missing_hero_image_paths(app_and_engine):
+    app, engine = app_and_engine
+    cookie_jar: dict[str, str] = {}
+
+    with Session(engine) as session:
+        session.add(
+            Post(
+                title="홈 히어로 이미지",
+                slug=HOME_HERO_IMAGE_POST_SLUG,
+                content="/static/images/hero/not-exist.png",
+                is_published=False,
+            )
+        )
+        session.commit()
+
+    _login_as_admin(app, cookie_jar)
+    status_code, _, body = _request(app, "GET", "/admin/posts", cookies=cookie_jar)
+
+    assert status_code == 200
+    assert "/static/images/hero/hero.jpg" in body
+    assert "/static/images/hero/not-exist.png" not in body
+
+    with Session(engine) as session:
+        hero_post = session.exec(
+            select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)
+        ).first()
+        assert hero_post is not None
+        assert hero_post.content == "/static/images/hero/hero.jpg"
+
+
+def test_admin_posts_page_keeps_existing_hero_image_and_removes_missing_one(app_and_engine):
+    app, engine = app_and_engine
+    cookie_jar: dict[str, str] = {}
+    hero_dir = (
+        Path(__file__).resolve().parents[1] / "app/static/images/hero"
+    )
+    hero_dir.mkdir(parents=True, exist_ok=True)
+    existing_file = hero_dir / "existing-sync-check.png"
+    existing_file.write_bytes(b"\x89PNG\r\n\x1a\n" + b"8" * 16)
+
+    try:
+        with Session(engine) as session:
+            session.add(
+                Post(
+                    title="홈 히어로 이미지",
+                    slug=HOME_HERO_IMAGE_POST_SLUG,
+                    content=(
+                        "/static/images/hero/existing-sync-check.png\n"
+                        "/static/images/hero/not-exist.png"
+                    ),
+                    is_published=False,
+                )
+            )
+            session.commit()
+
+        _login_as_admin(app, cookie_jar)
+        status_code, _, body = _request(app, "GET", "/admin/posts", cookies=cookie_jar)
+
+        assert status_code == 200
+        assert "/static/images/hero/existing-sync-check.png" in body
+        assert "/static/images/hero/not-exist.png" not in body
+
+        with Session(engine) as session:
+            hero_post = session.exec(
+                select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)
+            ).first()
+            assert hero_post is not None
+            assert hero_post.content == "/static/images/hero/existing-sync-check.png"
+    finally:
+        if existing_file.exists():
+            existing_file.unlink()
+
+
+def test_admin_posts_page_keeps_legacy_fallback_path_when_added(app_and_engine):
+    app, engine = app_and_engine
+    cookie_jar: dict[str, str] = {}
+
+    with Session(engine) as session:
+        session.add(
+            Post(
+                title="홈 히어로 이미지",
+                slug=HOME_HERO_IMAGE_POST_SLUG,
+                content="/static/images/hero.jpg",
+                is_published=False,
+            )
+        )
+        session.commit()
+
+    _login_as_admin(app, cookie_jar)
+    status_code, _, body = _request(app, "GET", "/admin/posts", cookies=cookie_jar)
+
+    assert status_code == 200
+    assert "/static/images/hero/hero.jpg" in body
+    assert "/static/images/hero.jpg" not in body
+
+    with Session(engine) as session:
+        hero_post = session.exec(
+            select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)
+        ).first()
+        assert hero_post is not None
+        assert hero_post.content == "/static/images/hero/hero.jpg"
+
+
+def test_home_hero_image_removal_helpers_filter_default_and_non_file_urls():
+    removable_urls = admin_post._collect_removable_hero_image_urls(
+        [
+            "/static/images/hero/hero.jpg",
+            "/static/images/hero/custom.png",
+            "/static/other/image.jpg",
+            "/images/hero/hero-banner.png",
+            "https://external.example.com/a.png",
+        ]
+    )
+    assert removable_urls == {
+        "/static/images/hero/custom.png",
+        "/static/images/hero/hero-banner.png",
+    }
+
+
+def test_home_hero_image_rename_rejects_default_path():
+    renamed_urls, rename_map, error = admin_post._rename_hero_images(
+        ["/static/images/hero/hero.jpg", "/static/images/hero/custom.png"],
+        ["/static/images/hero/hero.jpg"],
+        ["renamed.png"],
+    )
+
+    assert renamed_urls == []
+    assert rename_map == {}
+    assert error == "기본 히어로 이미지는 이름을 변경할 수 없습니다."
+
+
+def test_home_hero_image_create_with_upload(app_and_engine):
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    app, engine = app_and_engine
+    client = TestClient(app)
+
+    login_body = client.get("/admin/login").text
+    login_csrf_token = _extract_csrf_token(login_body)
+    response = client.post(
+        "/admin/login",
+        data={
+            "username": "admin",
+            "password": "test-password",
+            "csrf_token": login_csrf_token,
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin"
+
+    posts_body = client.get("/admin/posts").text
+    posts_csrf_token = _extract_csrf_token(posts_body)
+
+    response = client.post(
+        "/admin/posts",
+        data={
+            "title": "홈 히어로 이미지",
+            "slug": HOME_HERO_IMAGE_POST_SLUG,
+            "content": "",
+            "is_published": "false",
+            "csrf_token": posts_csrf_token,
+        },
+        files={
+            "hero_image_files": (
+                "hero-upload-test.png",
+                b"\x89PNG\r\n\x1a\n" + b"0" * 16,
+                "image/png",
+            )
+        },
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/posts"
+
+    with Session(engine) as session:
+        hero_post = session.exec(
+            select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)
+        ).first()
+        assert hero_post is not None
+        assert hero_post.content.startswith("/static/images/hero/")
+        assert hero_post.content.endswith(".png")
+        response = client.get("/")
+        assert response.status_code == 200
+        assert f'src="{hero_post.content}"' in response.text
+
+        image_file_path = Path(__file__).resolve().parents[1] / "app/static/images/hero"
+        for line in hero_post.content.splitlines():
+            image_name = line.removeprefix("/static/images/hero/")
+            file_path = image_file_path / image_name
+            if file_path.exists():
+                file_path.unlink()
+
+
+def test_home_hero_image_delete_selected_image(app_and_engine):
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    app, engine = app_and_engine
+    client = TestClient(app)
+
+    login_body = client.get("/admin/login").text
+    login_csrf_token = _extract_csrf_token(login_body)
+    response = client.post(
+        "/admin/login",
+        data={
+            "username": "admin",
+            "password": "test-password",
+            "csrf_token": login_csrf_token,
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin"
+
+    posts_body = client.get("/admin/posts").text
+    posts_csrf_token = _extract_csrf_token(posts_body)
+
+    response = client.post(
+        "/admin/posts",
+        data={
+            "title": "홈 히어로 이미지",
+            "slug": HOME_HERO_IMAGE_POST_SLUG,
+            "content": "",
+            "is_published": "false",
+            "csrf_token": posts_csrf_token,
+        },
+        files={
+            "hero_image_files": (
+                "delete-me-first.png",
+                b"\x89PNG\r\n\x1a\n" + b"1" * 16,
+                "image/png",
+            )
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/posts"
+
+    with Session(engine) as session:
+        hero_post = session.exec(
+            select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)
+        ).first()
+        assert hero_post is not None
+        hero_post_id = hero_post.id
+        first_image_url = hero_post.content.strip()
+
+    assert first_image_url == "/static/images/hero/delete-me-first.png"
+
+    posts_body = client.get("/admin/posts").text
+    posts_csrf_token = _extract_csrf_token(posts_body)
+
+    response = client.post(
+        f"/admin/posts/{hero_post_id}/update",
+        data={
+            "title": "홈 히어로 이미지",
+            "slug": HOME_HERO_IMAGE_POST_SLUG,
+            "content": first_image_url,
+            "is_published": "false",
+            "csrf_token": posts_csrf_token,
+        },
+        files={
+            "hero_image_files": (
+                "delete-me-second.png",
+                b"\x89PNG\r\n\x1a\n" + b"2" * 16,
+                "image/png",
+            )
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/posts"
+
+    with Session(engine) as session:
+        hero_post = session.exec(
+            select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)
+        ).first()
+        assert hero_post is not None
+        hero_urls = [line for line in hero_post.content.splitlines() if line.strip()]
+        assert len(hero_urls) == 2
+        assert "/static/images/hero/delete-me-first.png" in hero_urls
+        assert "/static/images/hero/delete-me-second.png" in hero_urls
+
+    posts_body = client.get("/admin/posts").text
+    posts_csrf_token = _extract_csrf_token(posts_body)
+
+    response = client.post(
+        f"/admin/posts/{hero_post_id}/update",
+        data={
+            "title": "홈 히어로 이미지",
+            "slug": HOME_HERO_IMAGE_POST_SLUG,
+            "content": first_image_url,
+            "is_published": "false",
+            "csrf_token": posts_csrf_token,
+            "hero_image_remove_urls": "/static/images/hero/delete-me-first.png",
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/posts"
+
+    with Session(engine) as session:
+        hero_post = session.get(Post, hero_post_id)
+        assert hero_post is not None
+        hero_urls = [line for line in hero_post.content.splitlines() if line.strip()]
+        assert hero_urls == ["/static/images/hero/delete-me-second.png"]
+
+        first_image_path = (
+            Path(__file__).resolve().parents[1]
+            / "app/static/images/hero"
+            / "delete-me-first.png"
+        )
+        second_image_path = (
+            Path(__file__).resolve().parents[1]
+            / "app/static/images/hero"
+            / "delete-me-second.png"
+        )
+        assert not first_image_path.exists()
+        assert second_image_path.exists()
+
+        if second_image_path.exists():
+            second_image_path.unlink()
+
+
+def test_home_hero_image_delete_all_images_uses_fallback(app_and_engine):
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    app, engine = app_and_engine
+    client = TestClient(app)
+
+    login_body = client.get("/admin/login").text
+    login_csrf_token = _extract_csrf_token(login_body)
+    response = client.post(
+        "/admin/login",
+        data={
+            "username": "admin",
+            "password": "test-password",
+            "csrf_token": login_csrf_token,
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin"
+
+    posts_body = client.get("/admin/posts").text
+    posts_csrf_token = _extract_csrf_token(posts_body)
+
+    response = client.post(
+        "/admin/posts",
+        data={
+            "title": "홈 히어로 이미지",
+            "slug": HOME_HERO_IMAGE_POST_SLUG,
+            "content": "",
+            "is_published": "false",
+            "csrf_token": posts_csrf_token,
+        },
+        files={
+            "hero_image_files": (
+                "delete-all.png",
+                b"\x89PNG\r\n\x1a\n" + b"3" * 16,
+                "image/png",
+            )
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/posts"
+
+    with Session(engine) as session:
+        hero_post = session.exec(
+            select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)
+        ).first()
+        assert hero_post is not None
+        hero_post_id = hero_post.id
+        image_url = hero_post.content.strip()
+
+    posts_body = client.get("/admin/posts").text
+    posts_csrf_token = _extract_csrf_token(posts_body)
+
+    response = client.post(
+        f"/admin/posts/{hero_post_id}/update",
+        data={
+            "title": "홈 히어로 이미지",
+            "slug": HOME_HERO_IMAGE_POST_SLUG,
+            "content": image_url,
+            "is_published": "false",
+            "csrf_token": posts_csrf_token,
+            "hero_image_remove_urls": image_url,
+        },
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/posts"
+
+    with Session(engine) as session:
+        hero_post = session.get(Post, hero_post_id)
+        assert hero_post is not None
+        assert hero_post.content == "/static/images/hero/hero.jpg"
+
+    home_body = client.get("/")
+    assert home_body.status_code == 200
+    assert 'src="/static/images/hero/hero.jpg"' in home_body.text
 
 
 def test_post_create_rejects_invalid_csrf(app_and_engine):

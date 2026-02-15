@@ -12,6 +12,10 @@ from app.models.post import Post
 from app.repositories import post_repo
 from app.schemas.post import PostCreateInput, PostUpdateInput
 
+_HOME_HERO_HTTP_SCHEMES = ("http://", "https://")
+_HOME_HERO_LEGACY_FALLBACK_URL = "/static/images/hero.jpg"
+_HOME_HERO_DEFAULT_URL = "/static/images/hero/hero.jpg"
+
 
 def parse_post_create_input(
     *,
@@ -67,6 +71,62 @@ def get_home_hero_image_post(session: Session) -> Post | None:
     """Return the system post that stores home hero image URL."""
 
     return post_repo.get_post_by_slug(session, HOME_HERO_IMAGE_POST_SLUG)
+
+
+def get_home_hero_image_urls(session: Session) -> list[str]:
+    """Return hero image URLs from the system post payload."""
+
+    hero_post = get_home_hero_image_post(session)
+    if hero_post is None:
+        return []
+
+    return parse_home_hero_image_urls(hero_post.content)
+
+
+def parse_home_hero_image_urls(raw_content: str | None) -> list[str]:
+    """Parse hero image URLs from raw post content."""
+
+    if raw_content is None:
+        return []
+
+    lines = [line.strip() for line in raw_content.splitlines()]
+    if lines:
+        normalized_urls = [_normalize_home_hero_image_url(line) for line in lines]
+        return [url for url in normalized_urls if url is not None]
+
+    single_line = _normalize_home_hero_image_url(raw_content.strip())
+    if single_line is None:
+        return []
+
+    return [single_line]
+
+
+def _normalize_home_hero_image_url(raw_url: str) -> str | None:
+    """Normalize hero image URLs into local static paths."""
+
+    url = raw_url.strip()
+    if not url:
+        return None
+
+    lowered_url = url.lower()
+    if lowered_url.startswith(_HOME_HERO_HTTP_SCHEMES):
+        return None
+
+    if url.startswith("/static/"):
+        if url == _HOME_HERO_LEGACY_FALLBACK_URL:
+            return _HOME_HERO_DEFAULT_URL
+        return url
+
+    if url.startswith("/images/"):
+        return f"/static{url}"
+
+    if url.startswith("/"):
+        return f"/static{url}"
+
+    if url.startswith("static/"):
+        return f"/{url}"
+
+    return f"/static/{url}"
 
 
 def create_post(session: Session, input_data: PostCreateInput) -> tuple[Post | None, str | None]:
