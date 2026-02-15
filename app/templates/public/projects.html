@@ -14,6 +14,26 @@
 </section>
 <section class="page-content">
   <div class="container">
+    <div class="list-controls" role="group" aria-label="{{ 'Project status filter' if is_en else '프로젝트 상태 필터' }}">
+      <a
+        class="filter-chip {% if selected_status == 'all' %}is-active{% endif %}"
+        href="{{ '/projects?lang=' ~ lang }}"
+      >
+        {{ "All" if is_en else "전체" }}
+      </a>
+      {% for project_status in project_statuses %}
+      <a
+        class="filter-chip {% if selected_status == project_status.value %}is-active{% endif %}"
+        href="{{ '/projects?status=' ~ project_status.value ~ '&lang=' ~ lang }}"
+      >
+        {% if project_status.value == "ongoing" %}
+        {{ "Ongoing" if is_en else "진행중" }}
+        {% else %}
+        {{ "Completed" if is_en else "완료" }}
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
     {% if projects %}
     <div class="list-grid">
       {% for project in projects %}

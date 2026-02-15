@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import urlsplit
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.core.constants import MemberRole
@@ -31,6 +33,23 @@ class MemberBaseInput(BaseModel):
             return value
         normalized = value.strip()
         return normalized or None
+
+    @field_validator("photo_url")
+    @classmethod
+    def _validate_photo_url_scheme(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+
+        parsed = urlsplit(value)
+        if parsed.scheme:
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise ValueError("photo_url must be a valid http(s) URL")
+            return value
+
+        if value.startswith("/") and not value.startswith("//"):
+            return value
+
+        raise ValueError("photo_url must be a valid http(s) URL or root-relative path")
 
     @model_validator(mode="after")
     def _ensure_display_order(self) -> MemberBaseInput:

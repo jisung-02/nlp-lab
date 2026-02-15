@@ -10,7 +10,7 @@ import secrets
 from hmac import compare_digest
 from typing import Any
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from pydantic import ValidationError
 from sqlmodel import Session, col, select
 
@@ -128,6 +128,13 @@ def validate_csrf_token(request: Request, csrf_token: str) -> bool:
     if not isinstance(session_token, str) or not session_token:
         return False
     return compare_digest(session_token, validated_input.csrf_token)
+
+
+def validate_or_raise_csrf(request: Request, csrf_token: str) -> None:
+    """Raise HTTP 403 when CSRF validation fails."""
+
+    if not validate_csrf_token(request, csrf_token):
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")
 
 
 def _sign_payload(secret_key: str, payload: str) -> str:

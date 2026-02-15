@@ -48,6 +48,7 @@ def create_app() -> FastAPI:
             response.set_cookie(
                 key=SESSION_COOKIE_NAME,
                 value=encode_session_cookie(settings.secret_key, session_data),
+                max_age=settings.admin_session_max_age_seconds,
                 httponly=True,
                 samesite="lax",
                 secure=settings.is_production,

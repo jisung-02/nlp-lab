@@ -167,6 +167,7 @@ def test_login_page_sets_session_cookie_with_required_options(app_and_engine):
 
     assert status_code == 200
     assert session_cookie is not None
+    assert "Max-Age=" in session_cookie
     assert "HttpOnly" in session_cookie
     assert "SameSite=lax" in session_cookie
 

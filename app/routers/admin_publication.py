@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 
 from app.db.session import get_session
 from app.services import publication_service
-from app.services.auth_service import get_or_create_csrf_token, validate_csrf_token
+from app.services.auth_service import get_or_create_csrf_token, validate_or_raise_csrf
 
 router = APIRouter(prefix="/admin/publications")
 
@@ -33,7 +33,7 @@ def create_publication(
     related_project_id: Annotated[str | None, Form()] = None,
     csrf_token: Annotated[str, Form()] = "",
 ):
-    _validate_or_raise_csrf(request, csrf_token)
+    validate_or_raise_csrf(request, csrf_token)
 
     create_input = publication_service.parse_publication_create_input(
         title=title,
@@ -76,7 +76,7 @@ def update_publication(
     related_project_id: Annotated[str | None, Form()] = None,
     csrf_token: Annotated[str, Form()] = "",
 ):
-    _validate_or_raise_csrf(request, csrf_token)
+    validate_or_raise_csrf(request, csrf_token)
 
     update_input = publication_service.parse_publication_update_input(
         title=title,
@@ -113,7 +113,7 @@ def delete_publication(
     session: Annotated[Session, Depends(get_session)],
     csrf_token: Annotated[str, Form()] = "",
 ):
-    _validate_or_raise_csrf(request, csrf_token)
+    validate_or_raise_csrf(request, csrf_token)
 
     error_message = publication_service.delete_publication(session, id)
     if error_message is not None:
@@ -148,8 +148,3 @@ def _render_publications_page(
         },
         status_code=status_code,
     )
-
-
-def _validate_or_raise_csrf(request: Request, csrf_token: str) -> None:
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")

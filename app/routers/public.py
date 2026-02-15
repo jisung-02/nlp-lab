@@ -101,6 +101,7 @@ def projects_page(
         _public_context(
             request,
             projects=projects,
+            project_statuses=list(ProjectStatus),
             selected_status=status.value if status else "all",
         ),
     )

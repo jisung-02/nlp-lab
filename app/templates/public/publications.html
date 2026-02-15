@@ -11,6 +11,22 @@
 </section>
 <section class="page-content">
   <div class="container">
+    <div class="list-controls" role="group" aria-label="{{ 'Publication year filter' if is_en else '논문 연도 필터' }}">
+      <a
+        class="filter-chip {% if selected_year is none %}is-active{% endif %}"
+        href="{{ '/publications?lang=' ~ lang }}"
+      >
+        {{ "All years" if is_en else "전체 연도" }}
+      </a>
+      {% for year_option in years %}
+      <a
+        class="filter-chip {% if selected_year == year_option %}is-active{% endif %}"
+        href="{{ '/publications?year=' ~ year_option ~ '&lang=' ~ lang }}"
+      >
+        {{ year_option }}
+      </a>
+      {% endfor %}
+    </div>
     {% if publications %}
     <div class="list-stack">
       {% for publication in publications %}

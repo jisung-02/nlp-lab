@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import urlsplit
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -29,6 +31,23 @@ class PublicationBaseInput(BaseModel):
             normalized = value.strip()
             return normalized or None
         return value
+
+    @field_validator("link")
+    @classmethod
+    def _validate_link_scheme(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+
+        parsed = urlsplit(value)
+        if parsed.scheme:
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise ValueError("link must be a valid http(s) URL")
+            return value
+
+        if value.startswith("/") and not value.startswith("//"):
+            return value
+
+        raise ValueError("link must be a valid http(s) URL or root-relative path")
 
     @field_validator("related_project_id", mode="before")
     @classmethod

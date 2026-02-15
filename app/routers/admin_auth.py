@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -21,7 +21,7 @@ from app.services.auth_service import (
     login_admin,
     logout_admin,
     parse_login_input,
-    validate_csrf_token,
+    validate_or_raise_csrf,
 )
 
 router = APIRouter(prefix="/admin")
@@ -43,7 +43,7 @@ def login(
     password: Annotated[str, Form()],
     csrf_token: Annotated[str, Form()],
 ):
-    _validate_or_raise_csrf(request, csrf_token)
+    validate_or_raise_csrf(request, csrf_token)
 
     login_input = parse_login_input(username=username, password=password, csrf_token=csrf_token)
     if login_input is None:
@@ -71,7 +71,7 @@ def login(
 
 @router.post("/logout")
 def logout(request: Request, csrf_token: Annotated[str, Form()]):
-    _validate_or_raise_csrf(request, csrf_token)
+    validate_or_raise_csrf(request, csrf_token)
     logout_admin(request)
     return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -115,8 +115,3 @@ def _render_login_page(
         },
         status_code=status_code,
     )
-
-
-def _validate_or_raise_csrf(request: Request, csrf_token: str) -> None:
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")

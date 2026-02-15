@@ -367,6 +367,31 @@
   gap: 18px;
 }
 
+.public-page .list-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.public-page .filter-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.public-page .filter-chip.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .public-page .stack-item {
   padding: 16px 0;
   border-bottom: 1px solid var(--line);

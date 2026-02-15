@@ -417,6 +417,34 @@ def test_publication_create_rejects_invalid_csrf(app_and_engine):
         assert session.exec(select(Publication)).all() == []
 
 
+def test_publication_create_rejects_unsafe_link_scheme(app_and_engine):
+    app, engine = app_and_engine
+    cookie_jar: dict[str, str] = {}
+    _login_as_admin(app, cookie_jar)
+    csrf_token = _get_csrf_token(app, cookie_jar, "/admin/publications")
+
+    status_code, _, body = _request(
+        app,
+        "POST",
+        "/admin/publications",
+        form={
+            "title": "Blocked Publication",
+            "authors": "Author",
+            "venue": "Venue",
+            "year": "2025",
+            "link": "javascript:alert(1)",
+            "related_project_id": "",
+            "csrf_token": csrf_token,
+        },
+        cookies=cookie_jar,
+    )
+
+    assert status_code == 400
+    assert "논문 입력값을 확인해주세요." in body
+    with Session(engine) as session:
+        assert session.exec(select(Publication)).all() == []
+
+
 def test_post_create_update_delete_flow(app_and_engine):
     app, engine = app_and_engine
     cookie_jar: dict[str, str] = {}

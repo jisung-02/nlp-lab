@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Annotated, cast
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, status
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
@@ -18,7 +18,7 @@ from app.db.session import get_session
 from app.models.post import Post
 from app.repositories import post_repo
 from app.services import post_service
-from app.services.auth_service import get_or_create_csrf_token, validate_csrf_token
+from app.services.auth_service import get_or_create_csrf_token, validate_or_raise_csrf
 
 router = APIRouter(prefix="/admin/posts")
 
@@ -56,7 +56,7 @@ def create_post(
     is_published: Annotated[str, Form()] = "true",
     csrf_token: Annotated[str, Form()] = "",
 ):
-    _validate_or_raise_csrf(request, csrf_token)
+    validate_or_raise_csrf(request, csrf_token)
 
     content_to_save = content
     if slug == HOME_HERO_IMAGE_POST_SLUG:
@@ -118,7 +118,7 @@ def update_post(
     is_published: Annotated[str, Form()] = "true",
     csrf_token: Annotated[str, Form()] = "",
 ):
-    _validate_or_raise_csrf(request, csrf_token)
+    validate_or_raise_csrf(request, csrf_token)
 
     content_to_save = content
     if slug == HOME_HERO_IMAGE_POST_SLUG:
@@ -172,7 +172,7 @@ def delete_post(
     session: Annotated[Session, Depends(get_session)],
     csrf_token: Annotated[str, Form()] = "",
 ):
-    _validate_or_raise_csrf(request, csrf_token)
+    validate_or_raise_csrf(request, csrf_token)
 
     error_message = post_service.delete_post(session, id)
     if error_message is not None:
@@ -594,8 +594,3 @@ def _sanitize_hero_image_stem(raw_stem: str, *, fallback: str = "hero-image") ->
         return sanitized_fallback
 
     return "hero-image"
-
-
-def _validate_or_raise_csrf(request: Request, csrf_token: str) -> None:
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")

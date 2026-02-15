@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     admin_username: str = "admin"
     admin_password: str = "change-me-now"
+    admin_session_max_age_seconds: int = 60 * 60 * 8
 
     model_config = SettingsConfigDict(
         env_file=".env",

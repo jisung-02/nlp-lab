@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
@@ -12,7 +12,7 @@ from sqlmodel import Session
 from app.core.constants import MemberRole
 from app.db.session import get_session
 from app.services import member_service
-from app.services.auth_service import get_or_create_csrf_token, validate_csrf_token
+from app.services.auth_service import get_or_create_csrf_token, validate_or_raise_csrf
 
 router = APIRouter(prefix="/admin/members")
 
@@ -34,7 +34,7 @@ def create_member(
     display_order: Annotated[str, Form()] = "100",
     csrf_token: Annotated[str, Form()] = "",
 ):
-    _validate_or_raise_csrf(request, csrf_token)
+    validate_or_raise_csrf(request, csrf_token)
 
     create_input = member_service.parse_member_create_input(
         name=name,
@@ -77,7 +77,7 @@ def update_member(
     display_order: Annotated[str, Form()] = "100",
     csrf_token: Annotated[str, Form()] = "",
 ):
-    _validate_or_raise_csrf(request, csrf_token)
+    validate_or_raise_csrf(request, csrf_token)
 
     update_input = member_service.parse_member_update_input(
         name=name,
@@ -114,7 +114,7 @@ def delete_member(
     session: Annotated[Session, Depends(get_session)],
     csrf_token: Annotated[str, Form()] = "",
 ):
-    _validate_or_raise_csrf(request, csrf_token)
+    validate_or_raise_csrf(request, csrf_token)
 
     error_message = member_service.delete_member(session, id)
     if error_message is not None:
@@ -149,8 +149,3 @@ def _render_members_page(
         },
         status_code=status_code,
     )
-
-
-def _validate_or_raise_csrf(request: Request, csrf_token: str) -> None:
-    if not validate_csrf_token(request, csrf_token):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")

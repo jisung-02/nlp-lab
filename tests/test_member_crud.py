@@ -320,6 +320,35 @@ def test_member_create_rejects_duplicate_email_and_invalid_payload(app_and_engin
     assert len(members) == 1
 
 
+def test_member_create_rejects_unsafe_photo_url_scheme(app_and_engine):
+    app, engine = app_and_engine
+    cookie_jar: dict[str, str] = {}
+    _login_as_admin(app, cookie_jar)
+    csrf_token = _get_members_csrf_token(app, cookie_jar)
+
+    status_code, _, body = _request(
+        app,
+        "POST",
+        "/admin/members",
+        form={
+            "name": "멤버 보안",
+            "role": "researcher",
+            "email": "safe@example.com",
+            "photo_url": "javascript:alert(1)",
+            "bio": "소개",
+            "display_order": "1",
+            "csrf_token": csrf_token,
+        },
+        cookies=cookie_jar,
+    )
+
+    assert status_code == 400
+    assert "멤버 입력값을 확인해주세요." in body
+
+    with Session(engine) as session:
+        assert session.exec(select(Member)).all() == []
+
+
 def test_member_routes_reject_invalid_csrf_and_missing_delete_target(app_and_engine):
     app, _ = app_and_engine
     cookie_jar: dict[str, str] = {}

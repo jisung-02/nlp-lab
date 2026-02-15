@@ -471,3 +471,90 @@ def test_project_detail_shows_only_related_publications(app_and_engine):
     assert response.status_code == 200
     publication_titles = [publication.title for publication in response.context["publications"]]
     assert publication_titles == ["publication-related"]
+
+
+def test_projects_page_renders_status_filter_links(app_and_engine):
+    app, engine = app_and_engine
+    with Session(engine) as session:
+        session.add_all(
+            [
+                Project(
+                    title="project-ongoing",
+                    slug="project-ongoing",
+                    summary="summary ongoing",
+                    description="description ongoing",
+                    status=ProjectStatus.ONGOING,
+                    start_date=date(2024, 1, 1),
+                    end_date=None,
+                    created_at=_dt(1),
+                    updated_at=_dt(1),
+                ),
+                Project(
+                    title="project-completed",
+                    slug="project-completed",
+                    summary="summary completed",
+                    description="description completed",
+                    status=ProjectStatus.COMPLETED,
+                    start_date=date(2023, 1, 1),
+                    end_date=date(2023, 12, 31),
+                    created_at=_dt(2),
+                    updated_at=_dt(2),
+                ),
+            ]
+        )
+        session.commit()
+
+        response = projects_page(
+            _make_request(app, "/projects", query_string="status=ongoing&lang=en"),
+            session=session,
+            status=ProjectStatus.ONGOING,
+        )
+
+    assert response.status_code == 200
+    assert response.context["selected_status"] == "ongoing"
+    body = response.body.decode("utf-8")
+    assert '/projects?lang=en' in body
+    assert '/projects?status=ongoing&amp;lang=en' in body
+    assert '/projects?status=completed&amp;lang=en' in body
+
+
+def test_publications_page_renders_year_filter_links(app_and_engine):
+    app, engine = app_and_engine
+    with Session(engine) as session:
+        session.add_all(
+            [
+                Publication(
+                    title="publication-2026",
+                    authors="authors",
+                    venue="venue",
+                    year=2026,
+                    link=None,
+                    related_project_id=None,
+                    created_at=_dt(1),
+                ),
+                Publication(
+                    title="publication-2025",
+                    authors="authors",
+                    venue="venue",
+                    year=2025,
+                    link=None,
+                    related_project_id=None,
+                    created_at=_dt(2),
+                ),
+            ]
+        )
+        session.commit()
+
+        response = publications_page(
+            _make_request(app, "/publications", query_string="year=2025&lang=en"),
+            session=session,
+            year=2025,
+        )
+
+    assert response.status_code == 200
+    assert response.context["selected_year"] == 2025
+    assert response.context["years"] == [2026, 2025]
+    body = response.body.decode("utf-8")
+    assert '/publications?lang=en' in body
+    assert '/publications?year=2025&amp;lang=en' in body
+    assert '/publications?year=2026&amp;lang=en' in body
