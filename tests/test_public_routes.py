@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 from starlette.requests import Request
 
-from app.core.constants import MemberRole, ProjectStatus
+from app.core.constants import HOME_HERO_IMAGE_POST_SLUG, MemberRole, ProjectStatus
 from app.main import create_app
 from app.models.member import Member
 from app.models.post import Post
@@ -327,6 +327,14 @@ def test_home_sorting_rules_and_limits(app_and_engine):
                     created_at=_dt(5),
                     updated_at=_dt(5),
                 ),
+                Post(
+                    title="home-hero-image",
+                    slug=HOME_HERO_IMAGE_POST_SLUG,
+                    content="/static/images/custom-hero.jpg",
+                    is_published=True,
+                    created_at=_dt(6),
+                    updated_at=_dt(6),
+                ),
             ]
         )
         session.commit()
@@ -350,6 +358,7 @@ def test_home_sorting_rules_and_limits(app_and_engine):
     post_titles = [post.title for post in response.context["posts"]]
     assert post_titles == ["post-newest", "post-new", "post-middle"]
     assert "post-unpublished" not in post_titles
+    assert response.context["hero_image_url"] == "/static/images/custom-hero.jpg"
 
 
 def test_project_detail_shows_only_related_publications(app_and_engine):

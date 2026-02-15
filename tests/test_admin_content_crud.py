@@ -14,7 +14,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine, select
 from starlette.types import Message, Receive, Scope, Send
 
-from app.core.constants import ProjectStatus
+from app.core.constants import HOME_HERO_IMAGE_POST_SLUG, ProjectStatus
 from app.core.security import hash_password
 from app.db.session import get_session
 from app.main import create_app
@@ -485,6 +485,69 @@ def test_post_create_update_delete_flow(app_and_engine):
 
     with Session(engine) as session:
         assert session.get(Post, post_id) is None
+
+
+def test_home_hero_image_create_update_flow_via_posts_crud(app_and_engine):
+    app, engine = app_and_engine
+    cookie_jar: dict[str, str] = {}
+    _login_as_admin(app, cookie_jar)
+    csrf_token = _get_csrf_token(app, cookie_jar, "/admin/posts")
+
+    status_code, headers, _ = _request(
+        app,
+        "POST",
+        "/admin/posts",
+        form={
+            "title": "홈 히어로 이미지",
+            "slug": HOME_HERO_IMAGE_POST_SLUG,
+            "content": "/static/images/hero-new.jpg",
+            "is_published": "false",
+            "csrf_token": csrf_token,
+        },
+        cookies=cookie_jar,
+    )
+
+    assert status_code == 303
+    assert _header_value(headers, "location") == "/admin/posts"
+
+    with Session(engine) as session:
+        hero_post = session.exec(
+            select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)
+        ).first()
+        assert hero_post is not None
+        assert hero_post.content == "/static/images/hero-new.jpg"
+        assert hero_post.is_published is False
+        hero_post_id = hero_post.id
+
+    assert hero_post_id is not None
+    csrf_token = _get_csrf_token(app, cookie_jar, "/admin/posts")
+
+    status_code, headers, _ = _request(
+        app,
+        "POST",
+        f"/admin/posts/{hero_post_id}/update",
+        form={
+            "title": "홈 히어로 이미지",
+            "slug": HOME_HERO_IMAGE_POST_SLUG,
+            "content": "/static/images/hero-updated.jpg",
+            "is_published": "false",
+            "csrf_token": csrf_token,
+        },
+        cookies=cookie_jar,
+    )
+
+    assert status_code == 303
+    assert _header_value(headers, "location") == "/admin/posts"
+
+    with Session(engine) as session:
+        updated_hero_post = session.get(Post, hero_post_id)
+        assert updated_hero_post is not None
+        assert updated_hero_post.content == "/static/images/hero-updated.jpg"
+        assert updated_hero_post.is_published is False
+
+    status_code, _, body = _request(app, "GET", "/")
+    assert status_code == 200
+    assert 'src="/static/images/hero-updated.jpg"' in body
 
 
 def test_post_create_rejects_invalid_csrf(app_and_engine):

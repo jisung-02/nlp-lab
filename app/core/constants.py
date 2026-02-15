@@ -23,6 +23,10 @@ class ProjectStatus(StrEnum):
     COMPLETED = "completed"
 
 
+HOME_HERO_IMAGE_POST_SLUG = "system-home-hero-image"
+HOME_HERO_IMAGE_POST_TITLE = "홈 히어로 이미지"
+
+
 def enum_values(enum_cls: type[Enum]) -> list[str]:
     """Return enum values for SQLAlchemy enum configuration."""
 

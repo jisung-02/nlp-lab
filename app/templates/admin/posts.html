@@ -38,6 +38,34 @@
     {% endif %}
 
     <section class="panel card">
+      <h2>홈 첫 화면 이미지</h2>
+      <form
+        action="{% if hero_image_post %}/admin/posts/{{ hero_image_post.id }}/update{% else %}/admin/posts{% endif %}"
+        method="post"
+        class="admin-form form-grid"
+      >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <input type="hidden" name="title" value="{{ home_hero_image_title }}" />
+        <input type="hidden" name="slug" value="{{ home_hero_image_slug }}" />
+        <input type="hidden" name="is_published" value="false" />
+        <label class="full-row">
+          이미지 URL 또는 경로
+          <input
+            type="text"
+            name="content"
+            value="{{ hero_image_url }}"
+            maxlength="12000"
+            placeholder="{{ hero_image_default_url }}"
+            required
+          />
+        </label>
+        <div class="form-actions full-row">
+          <button type="submit" class="btn">저장</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel card">
       <h2>게시글 생성</h2>
       <form action="/admin/posts" method="post" class="admin-form form-grid">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />

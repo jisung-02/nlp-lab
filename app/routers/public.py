@@ -10,12 +10,13 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, col, select
 
 from app.core.config import get_settings
-from app.core.constants import ProjectStatus
+from app.core.constants import HOME_HERO_IMAGE_POST_SLUG, ProjectStatus
 from app.db.session import get_session
 from app.models.member import Member
 from app.models.post import Post
 from app.models.project import Project
 from app.models.publication import Publication
+from app.services import post_service
 
 router = APIRouter()
 
@@ -25,6 +26,13 @@ def home(
     request: Request,
     session: Annotated[Session, Depends(get_session)],
 ):
+    hero_image_post = post_service.get_home_hero_image_post(session)
+    default_hero_image_url = str(request.url_for("static", path="images/hero.jpg"))
+    hero_image_url = (
+        hero_image_post.content.strip()
+        if hero_image_post is not None and hero_image_post.content.strip()
+        else default_hero_image_url
+    )
     latest_projects = session.exec(
         select(Project).order_by(col(Project.created_at).desc()).limit(3)
     ).all()
@@ -36,6 +44,7 @@ def home(
     latest_posts = session.exec(
         select(Post)
         .where(col(Post.is_published).is_(True))
+        .where(col(Post.slug) != HOME_HERO_IMAGE_POST_SLUG)
         .order_by(col(Post.created_at).desc())
         .limit(3)
     ).all()
@@ -54,6 +63,7 @@ def home(
             publications=latest_publications,
             posts=latest_posts,
             members=featured_members,
+            hero_image_url=hero_image_url,
             contact_email=settings.contact_email,
             contact_address=settings.contact_address,
         ),

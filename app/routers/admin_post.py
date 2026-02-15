@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 
+from app.core.constants import HOME_HERO_IMAGE_POST_SLUG, HOME_HERO_IMAGE_POST_TITLE
 from app.db.session import get_session
 from app.services import post_service
 from app.services.auth_service import get_or_create_csrf_token, validate_csrf_token
@@ -131,6 +132,13 @@ def _render_posts_page(
 ):
     csrf_token = get_or_create_csrf_token(request)
     templates = cast(Jinja2Templates, request.app.state.templates)
+    hero_image_post = post_service.get_home_hero_image_post(session)
+    default_hero_image_url = str(request.url_for("static", path="images/hero.jpg"))
+    hero_image_url = (
+        hero_image_post.content.strip()
+        if hero_image_post is not None and hero_image_post.content.strip()
+        else default_hero_image_url
+    )
     return templates.TemplateResponse(
         request,
         "admin/posts.html",
@@ -139,6 +147,11 @@ def _render_posts_page(
             "csrf_token": csrf_token,
             "error_message": error_message,
             "posts": post_service.list_posts(session),
+            "hero_image_post": hero_image_post,
+            "hero_image_url": hero_image_url,
+            "hero_image_default_url": default_hero_image_url,
+            "home_hero_image_slug": HOME_HERO_IMAGE_POST_SLUG,
+            "home_hero_image_title": HOME_HERO_IMAGE_POST_TITLE,
         },
         status_code=status_code,
     )

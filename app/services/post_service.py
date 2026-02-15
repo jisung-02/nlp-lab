@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from pydantic import ValidationError
 from sqlmodel import Session
 
+from app.core.constants import HOME_HERO_IMAGE_POST_SLUG
 from app.models.post import Post
 from app.repositories import post_repo
 from app.schemas.post import PostCreateInput, PostUpdateInput
@@ -59,7 +60,13 @@ def parse_post_update_input(
 def list_posts(session: Session) -> Sequence[Post]:
     """Return posts for admin listing."""
 
-    return post_repo.list_posts(session)
+    return [post for post in post_repo.list_posts(session) if not _is_home_hero_image_post(post)]
+
+
+def get_home_hero_image_post(session: Session) -> Post | None:
+    """Return the system post that stores home hero image URL."""
+
+    return post_repo.get_post_by_slug(session, HOME_HERO_IMAGE_POST_SLUG)
 
 
 def create_post(session: Session, input_data: PostCreateInput) -> tuple[Post | None, str | None]:
@@ -109,3 +116,7 @@ def delete_post(session: Session, post_id: int) -> str | None:
 
     post_repo.delete_post(session, post)
     return None
+
+
+def _is_home_hero_image_post(post: Post) -> bool:
+    return post.slug == HOME_HERO_IMAGE_POST_SLUG
