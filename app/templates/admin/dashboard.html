@@ -10,7 +10,11 @@
 {% block content %}
 <div class="admin-layout">
   <aside class="admin-sidebar card">
-    <h2>관리자 메뉴</h2>
+    <div class="admin-sidebar__brand">
+      <p class="admin-sidebar__khu">Kyung Hee University</p>
+      <h2 class="admin-sidebar__title">NLP Lab</h2>
+      <span class="admin-sidebar__badge">연구실 관리</span>
+    </div>
     <nav class="admin-nav" aria-label="Admin Navigation">
       <a href="/admin" class="is-active">대시보드</a>
       <a href="/admin/members">멤버</a>
@@ -30,14 +34,33 @@
     </div>
 
     <div class="admin-page-header">
-      <h1>관리자 대시보드</h1>
+      <div class="admin-page-title-wrap">
+        <h1>관리자 대시보드</h1>
+        <p class="admin-page-subtitle">연구실 콘텐츠를 한눈에 점검하고 관리할 수 있습니다.</p>
+      </div>
     </div>
 
     <div class="stats-grid">
-      <article class="card stat-card"><p>멤버 수: {{ member_count }}</p></article>
-      <article class="card stat-card"><p>프로젝트 수: {{ project_count }}</p></article>
-      <article class="card stat-card"><p>논문 수: {{ publication_count }}</p></article>
-      <article class="card stat-card"><p>게시글 수: {{ post_count }}</p></article>
+      <article class="card stat-card">
+        <p class="admin-stat-label">멤버</p>
+        <p class="admin-stat-value">{{ member_count }}</p>
+        <p class="admin-stat-accessory">멤버 수: {{ member_count }}</p>
+      </article>
+      <article class="card stat-card">
+        <p class="admin-stat-label">프로젝트</p>
+        <p class="admin-stat-value">{{ project_count }}</p>
+        <p class="admin-stat-accessory">프로젝트 수: {{ project_count }}</p>
+      </article>
+      <article class="card stat-card">
+        <p class="admin-stat-label">논문</p>
+        <p class="admin-stat-value">{{ publication_count }}</p>
+        <p class="admin-stat-accessory">논문 수: {{ publication_count }}</p>
+      </article>
+      <article class="card stat-card">
+        <p class="admin-stat-label">게시글</p>
+        <p class="admin-stat-value">{{ post_count }}</p>
+        <p class="admin-stat-accessory">게시글 수: {{ post_count }}</p>
+      </article>
     </div>
   </section>
 </div>

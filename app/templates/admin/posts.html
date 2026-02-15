@@ -11,7 +11,11 @@
 {% block content %}
 <div class="admin-layout">
   <aside class="admin-sidebar card">
-    <h2>관리자 메뉴</h2>
+    <div class="admin-sidebar__brand">
+      <p class="admin-sidebar__khu">Kyung Hee University</p>
+      <h2 class="admin-sidebar__title">NLP Lab</h2>
+      <span class="admin-sidebar__badge">연구실 관리</span>
+    </div>
     <nav class="admin-nav" aria-label="Admin Navigation">
       <a href="/admin">대시보드</a>
       <a href="/admin/members">멤버</a>
@@ -31,7 +35,10 @@
     </div>
 
     <div class="admin-page-header">
-      <h1>게시글 관리</h1>
+      <div class="admin-page-title-wrap">
+        <h1>게시글 관리</h1>
+        <p class="admin-page-subtitle">홈 배너와 게시글을 통합 관리합니다.</p>
+      </div>
     </div>
     {% if error_message %}
     <p class="error-message">{{ error_message }}</p>
@@ -172,31 +179,33 @@
       <ul class="entity-list">
         {% for post in posts %}
         <li class="entity-card card">
-          <form action="/admin/posts/{{ post.id }}/update" method="post" class="admin-form form-grid">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-            <label>제목 <input type="text" name="title" value="{{ post.title }}" maxlength="200" required /></label>
-            <label>Slug <input type="text" name="slug" value="{{ post.slug }}" maxlength="150" required /></label>
-            <label class="full-row">내용 <textarea name="content" maxlength="12000" required>{{ post.content }}</textarea></label>
-            <label>
-              공개 여부
-              <select name="is_published" required>
-                <option value="true" {% if post.is_published %}selected{% endif %}>true</option>
-                <option value="false" {% if not post.is_published %}selected{% endif %}>false</option>
-              </select>
-            </label>
-            <div class="form-actions full-row">
-              <button type="submit" class="btn">수정</button>
-            </div>
-          </form>
-          <form
-            action="/admin/posts/{{ post.id }}/delete"
-            method="post"
-            class="inline-form"
-            data-confirm-delete="게시글을 삭제하시겠습니까?"
-          >
-            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-            <button type="submit" class="btn btn-danger">삭제</button>
-          </form>
+          <div class="entity-actions">
+            <form action="/admin/posts/{{ post.id }}/update" method="post" class="admin-form form-grid">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <label>제목 <input type="text" name="title" value="{{ post.title }}" maxlength="200" required /></label>
+              <label>Slug <input type="text" name="slug" value="{{ post.slug }}" maxlength="150" required /></label>
+              <label class="full-row">내용 <textarea name="content" maxlength="12000" required>{{ post.content }}</textarea></label>
+              <label>
+                공개 여부
+                <select name="is_published" required>
+                  <option value="true" {% if post.is_published %}selected{% endif %}>true</option>
+                  <option value="false" {% if not post.is_published %}selected{% endif %}>false</option>
+                </select>
+              </label>
+              <div class="form-actions full-row">
+                <button type="submit" class="btn">수정</button>
+              </div>
+            </form>
+            <form
+              action="/admin/posts/{{ post.id }}/delete"
+              method="post"
+              class="inline-form"
+              data-confirm-delete="게시글을 삭제하시겠습니까?"
+            >
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <button type="submit" class="btn btn-danger">삭제</button>
+            </form>
+          </div>
         </li>
         {% endfor %}
       </ul>

@@ -316,6 +316,10 @@
   transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
+.public-page .section + .section {
+  margin-top: 0;
+}
+
 .public-page .section.alt {
   background: var(--bg-alt);
 }

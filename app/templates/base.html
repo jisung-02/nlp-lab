@@ -22,6 +22,7 @@
     {% endblock %}
   </head>
   {% set body_class_value %}{% block body_class %}public-page{% endblock %}{% endset %}
+  {% set is_admin_page = "admin-page" in body_class_value %}
   <body class="{{ body_class_value | trim }}">
     <header class="site-header">
       <div class="container header-inner site-header__inner">
@@ -29,6 +30,13 @@
           <span class="brand-top">NLP Lab</span>
           <span class="brand-sub">Kyung Hee University</span>
         </a>
+        {% if is_admin_page %}
+        <div class="admin-header-panel">
+          <span class="admin-header-panel__title">관리자 콘솔</span>
+          <span class="admin-header-panel__sep">|</span>
+          <span class="admin-header-panel__page">{% if request.url.path == '/admin' %}대시보드{% elif request.url.path == '/admin/members' %}멤버{% elif request.url.path == '/admin/projects' %}프로젝트{% elif request.url.path == '/admin/publications' %}논문{% elif request.url.path == '/admin/posts' %}게시글{% else %}관리{% endif %}</span>
+        </div>
+        {% endif %}
         <div class="header-controls">
           <nav class="nav site-nav" aria-label="Primary">
             <a href="{{ '/?lang=' ~ current_lang ~ '#about' }}">{{ "About" if is_en_lang else "연구실 소개" }}</a>
