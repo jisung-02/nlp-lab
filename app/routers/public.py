@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Annotated, cast
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.templating import Jinja2Templates
@@ -44,19 +45,18 @@ def home(
         .limit(8)
     ).all()
     settings = get_settings()
-    templates = cast(Jinja2Templates, request.app.state.templates)
-    return templates.TemplateResponse(
+    return _render_public_template(
         request,
         "public/home.html",
-        {
-            "request": request,
-            "projects": latest_projects,
-            "publications": latest_publications,
-            "posts": latest_posts,
-            "members": featured_members,
-            "contact_email": settings.contact_email,
-            "contact_address": settings.contact_address,
-        },
+        _public_context(
+            request,
+            projects=latest_projects,
+            publications=latest_publications,
+            posts=latest_posts,
+            members=featured_members,
+            contact_email=settings.contact_email,
+            contact_address=settings.contact_address,
+        ),
     )
 
 
@@ -68,14 +68,13 @@ def members_page(
     members = session.exec(
         select(Member).order_by(col(Member.display_order).asc(), col(Member.created_at).asc())
     ).all()
-    templates = cast(Jinja2Templates, request.app.state.templates)
-    return templates.TemplateResponse(
+    return _render_public_template(
         request,
         "public/members.html",
-        {
-            "request": request,
-            "members": members,
-        },
+        _public_context(
+            request,
+            members=members,
+        ),
     )
 
 
@@ -89,15 +88,14 @@ def projects_page(
     if status is not None:
         stmt = stmt.where(col(Project.status) == status)
     projects = session.exec(stmt.order_by(col(Project.created_at).desc())).all()
-    templates = cast(Jinja2Templates, request.app.state.templates)
-    return templates.TemplateResponse(
+    return _render_public_template(
         request,
         "public/projects.html",
-        {
-            "request": request,
-            "projects": projects,
-            "selected_status": status.value if status else "all",
-        },
+        _public_context(
+            request,
+            projects=projects,
+            selected_status=status.value if status else "all",
+        ),
     )
 
 
@@ -117,15 +115,14 @@ def project_detail_page(
         .order_by(col(Publication.year).desc(), col(Publication.id).desc())
     ).all()
 
-    templates = cast(Jinja2Templates, request.app.state.templates)
-    return templates.TemplateResponse(
+    return _render_public_template(
         request,
         "public/project_detail.html",
-        {
-            "request": request,
-            "project": project,
-            "publications": related_publications,
-        },
+        _public_context(
+            request,
+            project=project,
+            publications=related_publications,
+        ),
     )
 
 
@@ -146,30 +143,83 @@ def publications_page(
         select(col(Publication.year)).distinct().order_by(col(Publication.year).desc())
     ).all()
 
-    templates = cast(Jinja2Templates, request.app.state.templates)
-    return templates.TemplateResponse(
+    return _render_public_template(
         request,
         "public/publications.html",
-        {
-            "request": request,
-            "publications": publications,
-            "years": years,
-            "selected_year": year,
-        },
+        _public_context(
+            request,
+            publications=publications,
+            years=years,
+            selected_year=year,
+        ),
     )
 
 
 @router.get("/contact")
 def contact_page(request: Request):
     settings = get_settings()
-    templates = cast(Jinja2Templates, request.app.state.templates)
-    return templates.TemplateResponse(
+    return _render_public_template(
         request,
         "public/contact.html",
-        {
-            "request": request,
-            "contact_email": settings.contact_email,
-            "contact_address": settings.contact_address,
-            "contact_map_url": settings.contact_map_url,
-        },
+        _public_context(
+            request,
+            contact_email=settings.contact_email,
+            contact_address=settings.contact_address,
+            contact_map_url=settings.contact_map_url,
+        ),
     )
+
+
+SUPPORTED_PUBLIC_LANGS = {"kr", "en"}
+DEFAULT_PUBLIC_LANG = "kr"
+PUBLIC_LANG_COOKIE_NAME = "nlp_lang"
+
+
+def _render_public_template(
+    request: Request,
+    template_name: str,
+    context: dict[str, object],
+):
+    templates = cast(Jinja2Templates, request.app.state.templates)
+    response = templates.TemplateResponse(request, template_name, context)
+    response.set_cookie(
+        key=PUBLIC_LANG_COOKIE_NAME,
+        value=cast(str, context["lang"]),
+        max_age=60 * 60 * 24 * 365,
+        samesite="lax",
+    )
+    return response
+
+
+def _public_context(request: Request, **extra_context: object) -> dict[str, object]:
+    lang = _resolve_public_lang(request)
+    context: dict[str, object] = {
+        "request": request,
+        "lang": lang,
+        "is_en": lang == "en",
+        "lang_kr_url": _replace_lang_in_query(request, "kr"),
+        "lang_en_url": _replace_lang_in_query(request, "en"),
+    }
+    context.update(extra_context)
+    return context
+
+
+def _resolve_public_lang(request: Request) -> str:
+    query_lang = request.query_params.get("lang", "").lower()
+    if query_lang in SUPPORTED_PUBLIC_LANGS:
+        return query_lang
+
+    cookie_lang = request.cookies.get(PUBLIC_LANG_COOKIE_NAME, "").lower()
+    if cookie_lang in SUPPORTED_PUBLIC_LANGS:
+        return cookie_lang
+
+    return DEFAULT_PUBLIC_LANG
+
+
+def _replace_lang_in_query(request: Request, target_lang: str) -> str:
+    query_params = dict(request.query_params)
+    query_params["lang"] = target_lang
+    encoded_query = urlencode(query_params)
+    if not encoded_query:
+        return request.url.path
+    return f"{request.url.path}?{encoded_query}"

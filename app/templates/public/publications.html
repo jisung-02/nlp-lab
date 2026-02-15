@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}연구성과 | NLP Lab{% endblock %}
+{% block title %}{% if is_en %}Publications | NLP Lab{% else %}연구성과 | NLP Lab{% endif %}{% endblock %}
 {% block body_class %}public-page public-publications{% endblock %}
 {% block content %}
 <section class="page-hero">
   <div class="container">
-    <p class="eyebrow">연구성과</p>
-    <h1>연구성과</h1>
-    <p class="lead">최근 연구 성과</p>
+    <p class="eyebrow">{{ "Publications" if is_en else "연구성과" }}</p>
+    <h1>{{ "Publications" if is_en else "연구성과" }}</h1>
+    <p class="lead">{{ "Recent research outputs" if is_en else "최근 연구 성과" }}</p>
   </div>
 </section>
 <section class="page-content">
@@ -25,7 +25,7 @@
       {% endfor %}
     </div>
     {% else %}
-    <p class="empty-state">조회된 논문이 없습니다.</p>
+    <p class="empty-state">{{ "No publications found." if is_en else "조회된 논문이 없습니다." }}</p>
     {% endif %}
   </div>
 </section>

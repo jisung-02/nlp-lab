@@ -1,12 +1,15 @@
 {% extends "base.html" %}
-{% block title %}연구 분야 | NLP Lab{% endblock %}
+{% block title %}{% if is_en %}Research Areas | NLP Lab{% else %}연구 분야 | NLP Lab{% endif %}{% endblock %}
 {% block body_class %}public-page public-projects{% endblock %}
 {% block content %}
 <section class="page-hero">
   <div class="container">
-    <p class="eyebrow">연구 분야</p>
-    <h1>연구 분야</h1>
-    <p class="lead">자연어 이해, 검색, 대화 시스템을 중심으로 연구합니다.</p>
+    <p class="eyebrow">{{ "Research Areas" if is_en else "연구 분야" }}</p>
+    <h1>{{ "Research Areas" if is_en else "연구 분야" }}</h1>
+    <p class="lead">
+      {% if is_en %}Our work focuses on language understanding, retrieval, and dialogue systems.{% else
+      %}자연어 이해, 검색, 대화 시스템을 중심으로 연구합니다.{% endif %}
+    </p>
   </div>
 </section>
 <section class="page-content">
@@ -15,13 +18,13 @@
     <div class="list-grid">
       {% for project in projects %}
       <article class="list-card">
-        <h3><a href="/projects/{{ project.slug }}">{{ project.title }}</a></h3>
+        <h3><a href="{{ '/projects/' ~ project.slug ~ '?lang=' ~ lang }}">{{ project.title }}</a></h3>
         <p>{{ project.summary }}</p>
       </article>
       {% endfor %}
     </div>
     {% else %}
-    <p class="empty-state">조회된 프로젝트가 없습니다.</p>
+    <p class="empty-state">{{ "No projects found." if is_en else "조회된 프로젝트가 없습니다." }}</p>
     {% endif %}
   </div>
 </section>

@@ -1,5 +1,9 @@
 <!doctype html>
-<html lang="ko">
+{% set current_lang = lang | default('kr') %}
+{% set is_en_lang = current_lang == 'en' %}
+{% set lang_kr_href = lang_kr_url | default(request.url.path ~ '?lang=kr') %}
+{% set lang_en_href = lang_en_url | default(request.url.path ~ '?lang=en') %}
+<html lang="{{ 'en' if is_en_lang else 'ko' }}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -21,22 +25,34 @@
   <body class="{{ body_class_value | trim }}">
     <header class="site-header">
       <div class="container header-inner site-header__inner">
-        <a class="brand site-brand" href="/">
+        <a class="brand site-brand" href="{{ '/?lang=' ~ current_lang }}">
           <span class="brand-top">NLP Lab</span>
           <span class="brand-sub">Kyung Hee University</span>
         </a>
         <div class="header-controls">
           <nav class="nav site-nav" aria-label="Primary">
-            <a href="/#about">연구실 소개</a>
-            <a href="/#research">연구 분야</a>
-            <a href="/#publications">연구성과</a>
-            <a href="/#members">구성원</a>
-            <a href="/#news">소식</a>
-            <a href="/#contact">연락처</a>
+            <a href="{{ '/?lang=' ~ current_lang ~ '#about' }}">{{ "About" if is_en_lang else "연구실 소개" }}</a>
+            <a href="{{ '/?lang=' ~ current_lang ~ '#research' }}"
+              >{{ "Research" if is_en_lang else "연구 분야" }}</a
+            >
+            <a href="{{ '/?lang=' ~ current_lang ~ '#publications' }}"
+              >{{ "Publications" if is_en_lang else "연구성과" }}</a
+            >
+            <a href="{{ '/?lang=' ~ current_lang ~ '#members' }}"
+              >{{ "Members" if is_en_lang else "구성원" }}</a
+            >
+            <a href="{{ '/?lang=' ~ current_lang ~ '#news' }}">{{ "News" if is_en_lang else "소식" }}</a>
+            <a href="{{ '/?lang=' ~ current_lang ~ '#contact' }}"
+              >{{ "Contact" if is_en_lang else "연락처" }}</a
+            >
           </nav>
           <span class="lang-switch" aria-label="Language switcher">
-            <span class="active">KR</span>
-            <span class="inactive">EN</span>
+            <a href="{{ lang_kr_href }}" class="{% if not is_en_lang %}active{% else %}inactive{% endif %}"
+              >KR</a
+            >
+            <a href="{{ lang_en_href }}" class="{% if is_en_lang %}active{% else %}inactive{% endif %}"
+              >EN</a
+            >
           </span>
         </div>
       </div>
@@ -46,10 +62,13 @@
       <div class="container footer-inner">
         <div>
           <h4>NLP Lab</h4>
-          <p>경희대학교 자연어처리 연구실</p>
+          <p>{{ "Kyung Hee University NLP Lab" if is_en_lang else "경희대학교 자연어처리 연구실" }}</p>
         </div>
         <div class="footer-meta">
-          <p>© 2026 경희대학교 NLP 연구실. All rights reserved.</p>
+          <p>
+            {% if is_en_lang %}© 2026 Kyung Hee University NLP Lab. All rights reserved.{% else %}©
+            2026 경희대학교 NLP 연구실. All rights reserved.{% endif %}
+          </p>
         </div>
       </div>
     </footer>

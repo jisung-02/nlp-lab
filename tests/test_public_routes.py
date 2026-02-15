@@ -135,6 +135,35 @@ def test_public_routes_return_200(app_and_engine):
     assert contact_page(_make_request(app, "/contact")).status_code == 200
 
 
+def test_public_routes_support_en_language_query(app_and_engine):
+    app, engine = app_and_engine
+    project_slug = _seed_baseline(engine)
+
+    with Session(engine) as session:
+        responses = [
+            home(_make_request(app, "/", query_string="lang=en"), session=session),
+            members_page(_make_request(app, "/members", query_string="lang=en"), session=session),
+            projects_page(_make_request(app, "/projects", query_string="lang=en"), session=session),
+            project_detail_page(
+                _make_request(app, f"/projects/{project_slug}", query_string="lang=en"),
+                slug=project_slug,
+                session=session,
+            ),
+            publications_page(
+                _make_request(app, "/publications", query_string="lang=en"),
+                session=session,
+            ),
+            contact_page(_make_request(app, "/contact", query_string="lang=en")),
+        ]
+
+    for response in responses:
+        assert response.status_code == 200
+        assert response.context["lang"] == "en"
+        assert response.context["is_en"] is True
+        assert response.context["lang_kr_url"].startswith(response.context["request"].url.path)
+        assert "nlp_lang=en" in response.headers["set-cookie"]
+
+
 def test_project_detail_returns_404_for_unknown_slug(app_and_engine):
     app, engine = app_and_engine
     with Session(engine) as session:

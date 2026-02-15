@@ -4,7 +4,7 @@
 {% block content %}
 <section class="page-hero">
   <div class="container">
-    <p class="eyebrow">Project</p>
+    <p class="eyebrow">{{ "Project" if is_en else "프로젝트" }}</p>
     <h1>{{ project.title }}</h1>
     <p class="lead">{{ project.summary }}</p>
   </div>
@@ -18,7 +18,7 @@
     </article>
 
     <section>
-      <h2>연관 논문</h2>
+      <h2>{{ "Related Publications" if is_en else "연관 논문" }}</h2>
       {% if publications %}
       <div class="list-stack">
         {% for publication in publications %}
@@ -33,7 +33,7 @@
         {% endfor %}
       </div>
       {% else %}
-      <p class="empty-state">연결된 논문이 없습니다.</p>
+      <p class="empty-state">{{ "No related publications found." if is_en else "연결된 논문이 없습니다." }}</p>
       {% endif %}
     </section>
   </div>

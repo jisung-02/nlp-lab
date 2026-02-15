@@ -1,12 +1,14 @@
 {% extends "base.html" %}
-{% block title %}구성원 | NLP Lab{% endblock %}
+{% block title %}{% if is_en %}Members | NLP Lab{% else %}구성원 | NLP Lab{% endif %}{% endblock %}
 {% block body_class %}public-page public-members{% endblock %}
 {% block content %}
 <section class="page-hero">
   <div class="container">
-    <p class="eyebrow">구성원</p>
-    <h1>구성원</h1>
-    <p class="lead">연구실 구성원 소개</p>
+    <p class="eyebrow">{{ "Members" if is_en else "구성원" }}</p>
+    <h1>{{ "Members" if is_en else "구성원" }}</h1>
+    <p class="lead">
+      {{ "Meet the people of Kyung Hee University NLP Lab." if is_en else "연구실 구성원 소개" }}
+    </p>
   </div>
 </section>
 <section class="page-content">
@@ -39,7 +41,7 @@
       {% endfor %}
     </div>
     {% else %}
-    <p class="empty-state">등록된 구성원이 없습니다.</p>
+    <p class="empty-state">{{ "No members are available." if is_en else "등록된 구성원이 없습니다." }}</p>
     {% endif %}
   </div>
 </section>
