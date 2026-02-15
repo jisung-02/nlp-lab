@@ -80,7 +80,7 @@ const initHeroImageUpload = () => {
   const fileInput = document.getElementById("hero-image-files");
   if (
     !(dropzone instanceof HTMLElement) ||
-    !(picker instanceof HTMLButtonElement) ||
+    !(picker instanceof HTMLElement) ||
     !(fileInput instanceof HTMLInputElement)
   ) {
     return;
@@ -96,9 +96,24 @@ const initHeroImageUpload = () => {
     applyHeroImageFiles(imageFiles);
   };
 
-  picker.addEventListener("click", () => {
+  const openPicker = () => {
+    if (typeof fileInput.showPicker === "function") {
+      try {
+        fileInput.showPicker();
+        return;
+      } catch {
+        // showPicker can throw when a browser blocks programmatic invocation.
+      }
+    }
     fileInput.click();
-  });
+  };
+
+  if (!(picker instanceof HTMLLabelElement)) {
+    picker.addEventListener("click", (event) => {
+      event.preventDefault();
+      openPicker();
+    });
+  }
 
   fileInput.addEventListener("change", () => {
     const files = Array.from(fileInput.files);
@@ -179,7 +194,7 @@ const initMemberPhotoUpload = () => {
   const fileInput = document.getElementById("member-photo-file");
   if (
     !(dropzone instanceof HTMLElement) ||
-    !(picker instanceof HTMLButtonElement) ||
+    !(picker instanceof HTMLElement) ||
     !(fileInput instanceof HTMLInputElement)
   ) {
     return;
@@ -195,9 +210,24 @@ const initMemberPhotoUpload = () => {
     applyMemberPhotoFile(firstImageFile);
   };
 
-  picker.addEventListener("click", () => {
+  const openPicker = () => {
+    if (typeof fileInput.showPicker === "function") {
+      try {
+        fileInput.showPicker();
+        return;
+      } catch {
+        // showPicker can throw when a browser blocks programmatic invocation.
+      }
+    }
     fileInput.click();
-  });
+  };
+
+  if (!(picker instanceof HTMLLabelElement)) {
+    picker.addEventListener("click", (event) => {
+      event.preventDefault();
+      openPicker();
+    });
+  }
 
   fileInput.addEventListener("change", () => {
     handleIncomingFiles(fileInput.files || []);

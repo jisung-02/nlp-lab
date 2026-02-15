@@ -282,6 +282,12 @@
   color: var(--color-text-muted);
 }
 
+.hero-upload-picker-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .hero-upload-preview {
   border: 1px dashed #d8dde5;
   border-radius: 8px;
