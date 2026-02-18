@@ -13,10 +13,12 @@ class MemberBaseInput(BaseModel):
     """Shared member form fields."""
 
     name: str = Field(min_length=1, max_length=100)
+    name_en: str | None = Field(default=None, max_length=100)
     role: MemberRole
     email: str = Field(min_length=3, max_length=255)
     photo_url: str | None = Field(default=None, max_length=500)
     bio: str | None = Field(default=None, max_length=2000)
+    bio_en: str | None = Field(default=None, max_length=2000)
     display_order: int = Field(default=100)
 
     @field_validator("name", "email", mode="before")
@@ -26,7 +28,7 @@ class MemberBaseInput(BaseModel):
             return value.strip()
         return value
 
-    @field_validator("photo_url", "bio", mode="before")
+    @field_validator("name_en", "photo_url", "bio", "bio_en", mode="before")
     @classmethod
     def _normalize_optional_text(cls, value: object) -> object:
         if not isinstance(value, str):

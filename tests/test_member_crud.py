@@ -191,10 +191,12 @@ def test_member_create_update_delete_flow(app_and_engine):
         "/admin/members",
         form={
             "name": "홍길동",
+            "name_en": "Hong Gil-dong",
             "role": "researcher",
             "email": "member@example.com",
             "photo_url": "https://example.com/profile.jpg",
             "bio": "초기 소개",
+            "bio_en": "Initial bio",
             "display_order": "10",
             "csrf_token": csrf_token,
         },
@@ -205,12 +207,13 @@ def test_member_create_update_delete_flow(app_and_engine):
     assert _header_value(headers, "location") == "/admin/members"
 
     with Session(engine) as session:
-        member = session.exec(
-            select(Member).where(Member.email == "member@example.com")
-        ).first()
+        member = session.exec(select(Member).where(Member.email == "member@example.com")).first()
         assert member is not None
         assert member.name == "홍길동"
+        assert member.name_en == "Hong Gil-dong"
         assert member.role == MemberRole.RESEARCHER
+        assert member.bio == "초기 소개"
+        assert member.bio_en == "Initial bio"
         member_id = member.id
 
     assert member_id is not None
@@ -222,10 +225,12 @@ def test_member_create_update_delete_flow(app_and_engine):
         f"/admin/members/{member_id}/update",
         form={
             "name": "김연구",
+            "name_en": "Kim Researcher",
             "role": "phd",
             "email": "member-updated@example.com",
             "photo_url": "https://example.com/new.jpg",
             "bio": "수정 소개",
+            "bio_en": "Updated bio",
             "display_order": "2",
             "csrf_token": csrf_token,
         },
@@ -239,8 +244,11 @@ def test_member_create_update_delete_flow(app_and_engine):
         updated_member = session.get(Member, member_id)
         assert updated_member is not None
         assert updated_member.name == "김연구"
+        assert updated_member.name_en == "Kim Researcher"
         assert updated_member.role == MemberRole.PHD
         assert updated_member.email == "member-updated@example.com"
+        assert updated_member.bio == "수정 소개"
+        assert updated_member.bio_en == "Updated bio"
         assert updated_member.display_order == 2
 
     csrf_token = _get_members_csrf_token(app, cookie_jar)
@@ -319,6 +327,43 @@ def test_member_create_rejects_duplicate_email_and_invalid_payload(app_and_engin
     with Session(engine) as session:
         members = session.exec(select(Member)).all()
     assert len(members) == 1
+
+
+def test_member_create_accepts_english_name_only(app_and_engine):
+    app, engine = app_and_engine
+    cookie_jar: dict[str, str] = {}
+    _login_as_admin(app, cookie_jar)
+    csrf_token = _get_members_csrf_token(app, cookie_jar)
+
+    status_code, headers, _ = _request(
+        app,
+        "POST",
+        "/admin/members",
+        form={
+            "name": "",
+            "name_en": "English Name Only",
+            "role": "researcher",
+            "email": "english-only@example.com",
+            "bio": "",
+            "bio_en": "English Intro Only",
+            "display_order": "1",
+            "csrf_token": csrf_token,
+        },
+        cookies=cookie_jar,
+    )
+
+    assert status_code == 303
+    assert _header_value(headers, "location") == "/admin/members"
+
+    with Session(engine) as session:
+        member = session.exec(
+            select(Member).where(Member.email == "english-only@example.com")
+        ).first()
+        assert member is not None
+        assert member.name == "English Name Only"
+        assert member.name_en == "English Name Only"
+        assert member.bio is None
+        assert member.bio_en == "English Intro Only"
 
 
 def test_member_create_rejects_unsafe_photo_url_scheme(app_and_engine):

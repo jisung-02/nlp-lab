@@ -45,8 +45,10 @@ async def create_member(
     name: Annotated[str, Form()],
     role: Annotated[str, Form()],
     email: Annotated[str, Form()],
+    name_en: Annotated[str | None, Form()] = None,
     photo_url: Annotated[str | None, Form()] = None,
     bio: Annotated[str | None, Form()] = None,
+    bio_en: Annotated[str | None, Form()] = None,
     display_order: Annotated[str, Form()] = "100",
     csrf_token: Annotated[str, Form()] = "",
 ):
@@ -67,10 +69,12 @@ async def create_member(
 
     create_input = member_service.parse_member_create_input(
         name=name,
+        name_en=name_en,
         role=role,
         email=email,
         photo_url=resolved_photo_url,
         bio=bio,
+        bio_en=bio_en,
         display_order=display_order,
     )
     if create_input is None:
@@ -101,8 +105,10 @@ async def update_member(
     name: Annotated[str, Form()],
     role: Annotated[str, Form()],
     email: Annotated[str, Form()],
+    name_en: Annotated[str | None, Form()] = None,
     photo_url: Annotated[str | None, Form()] = None,
     bio: Annotated[str | None, Form()] = None,
+    bio_en: Annotated[str | None, Form()] = None,
     display_order: Annotated[str, Form()] = "100",
     csrf_token: Annotated[str, Form()] = "",
 ):
@@ -123,10 +129,12 @@ async def update_member(
 
     update_input = member_service.parse_member_update_input(
         name=name,
+        name_en=name_en,
         role=role,
         email=email,
         photo_url=resolved_photo_url,
         bio=bio,
+        bio_en=bio_en,
         display_order=display_order,
     )
     if update_input is None:

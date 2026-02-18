@@ -52,7 +52,8 @@
         class="admin-form form-grid"
       >
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <label>이름 <input type="text" name="name" maxlength="100" required /></label>
+        <label>이름(한글) <input type="text" name="name" maxlength="100" /></label>
+        <label>이름(영문) <input type="text" name="name_en" maxlength="100" /></label>
         <label>
           역할
           <select name="role" required>
@@ -80,7 +81,8 @@
             <p class="meta-line">선택된 파일 없음</p>
           </div>
         </div>
-        <label class="full-row">소개 <textarea name="bio" maxlength="2000"></textarea></label>
+        <label class="full-row">소개(한글) <textarea name="bio" maxlength="2000"></textarea></label>
+        <label class="full-row">소개(영문) <textarea name="bio_en" maxlength="2000"></textarea></label>
         <label>표시 순서 <input type="number" name="display_order" value="100" min="0" required /></label>
         <div class="form-actions full-row">
           <button type="submit" class="btn">생성</button>
@@ -121,7 +123,11 @@
                   class="admin-form form-grid"
                 >
                   <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-                  <label>이름 <input type="text" name="name" value="{{ member.name }}" maxlength="100" required /></label>
+                  <label>이름(한글) <input type="text" name="name" value="{{ member.name }}" maxlength="100" /></label>
+                  <label>
+                    이름(영문)
+                    <input type="text" name="name_en" value="{{ member.name_en or '' }}" maxlength="100" />
+                  </label>
                   <label>
                     역할
                     <select name="role" required>
@@ -142,7 +148,8 @@
                     />
                   </label>
                   <label>사진 파일 <input type="file" name="photo_file" accept="image/*" /></label>
-                  <label class="full-row">소개 <textarea name="bio" maxlength="2000">{{ member.bio or '' }}</textarea></label>
+                  <label class="full-row">소개(한글) <textarea name="bio" maxlength="2000">{{ member.bio or '' }}</textarea></label>
+                  <label class="full-row">소개(영문) <textarea name="bio_en" maxlength="2000">{{ member.bio_en or '' }}</textarea></label>
                   <label>표시 순서 <input type="number" name="display_order" value="{{ member.display_order }}" min="0" required /></label>
                   <div class="form-actions full-row">
                     <button type="submit" class="btn">수정</button>

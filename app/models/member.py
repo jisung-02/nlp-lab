@@ -18,6 +18,7 @@ class Member(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(sa_column=Column(String(100), nullable=False))
+    name_en: str | None = Field(default=None, sa_column=Column(String(100), nullable=True))
     role: MemberRole = Field(
         sa_column=Column(
             SAEnum(
@@ -32,6 +33,7 @@ class Member(SQLModel, table=True):
     email: str = Field(sa_column=Column(String(255), unique=True, nullable=False))
     photo_url: str | None = Field(default=None, sa_column=Column(String(500), nullable=True))
     bio: str | None = Field(default=None, sa_column=Column(String(2000), nullable=True))
+    bio_en: str | None = Field(default=None, sa_column=Column(String(2000), nullable=True))
     display_order: int = Field(default=100, sa_column=Column(Integer, nullable=False, default=100))
     created_at: datetime = Field(
         default_factory=utcnow,

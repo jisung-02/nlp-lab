@@ -164,6 +164,74 @@ def test_public_routes_support_en_language_query(app_and_engine):
         assert "nlp_lang=en" in response.headers["set-cookie"]
 
 
+def test_members_page_displays_language_specific_name_and_bio_with_fallback(app_and_engine):
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    app, engine = app_and_engine
+    with Session(engine) as session:
+        session.add_all(
+            [
+                Member(
+                    name="홍길동",
+                    name_en="Hong Gil-dong",
+                    role=MemberRole.RESEARCHER,
+                    email="member-a@example.com",
+                    photo_url=None,
+                    bio="한글 소개 A",
+                    bio_en="English Intro A",
+                    display_order=1,
+                    created_at=_dt(1),
+                    updated_at=_dt(1),
+                ),
+                Member(
+                    name="이멤버",
+                    name_en=None,
+                    role=MemberRole.PHD,
+                    email="member-b@example.com",
+                    photo_url=None,
+                    bio="한글 소개 B",
+                    bio_en=None,
+                    display_order=2,
+                    created_at=_dt(2),
+                    updated_at=_dt(2),
+                ),
+                Member(
+                    name="박멤버",
+                    name_en="Park Member",
+                    role=MemberRole.MASTER,
+                    email="member-c@example.com",
+                    photo_url=None,
+                    bio=None,
+                    bio_en="English Intro C",
+                    display_order=3,
+                    created_at=_dt(3),
+                    updated_at=_dt(3),
+                ),
+            ]
+        )
+        session.commit()
+
+    client = TestClient(app)
+
+    ko_response = client.get("/members?lang=kr")
+    assert ko_response.status_code == 200
+    assert "홍길동" in ko_response.text
+    assert "한글 소개 A" in ko_response.text
+    assert "English Intro A" not in ko_response.text
+    assert "English Intro C" in ko_response.text
+
+    en_response = client.get("/members?lang=en")
+    assert en_response.status_code == 200
+    assert "Hong Gil-dong" in en_response.text
+    assert "English Intro A" in en_response.text
+    assert "한글 소개 A" not in en_response.text
+    assert "이멤버" in en_response.text
+    assert "한글 소개 B" in en_response.text
+    assert "Park Member" in en_response.text
+    assert "English Intro C" in en_response.text
+
+
 def test_project_detail_returns_404_for_unknown_slug(app_and_engine):
     app, engine = app_and_engine
     with Session(engine) as session:
@@ -513,9 +581,9 @@ def test_projects_page_renders_status_filter_links(app_and_engine):
     assert response.status_code == 200
     assert response.context["selected_status"] == "ongoing"
     body = response.body.decode("utf-8")
-    assert '/projects?lang=en' in body
-    assert '/projects?status=ongoing&amp;lang=en' in body
-    assert '/projects?status=completed&amp;lang=en' in body
+    assert "/projects?lang=en" in body
+    assert "/projects?status=ongoing&amp;lang=en" in body
+    assert "/projects?status=completed&amp;lang=en" in body
 
 
 def test_publications_page_renders_year_filter_links(app_and_engine):
@@ -555,6 +623,6 @@ def test_publications_page_renders_year_filter_links(app_and_engine):
     assert response.context["selected_year"] == 2025
     assert response.context["years"] == [2026, 2025]
     body = response.body.decode("utf-8")
-    assert '/publications?lang=en' in body
-    assert '/publications?year=2025&amp;lang=en' in body
-    assert '/publications?year=2026&amp;lang=en' in body
+    assert "/publications?lang=en" in body
+    assert "/publications?year=2025&amp;lang=en" in body
+    assert "/publications?year=2026&amp;lang=en" in body
