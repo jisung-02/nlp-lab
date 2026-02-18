@@ -39,18 +39,17 @@
         {% endif %}
         <div class="header-controls">
           <nav class="nav site-nav" aria-label="Primary">
-            <a href="{{ '/?lang=' ~ current_lang ~ '#about' }}">{{ "About" if is_en_lang else "연구실 소개" }}</a>
-            <a href="{{ '/?lang=' ~ current_lang ~ '#research' }}"
+            <a href="{{ '/?lang=' ~ current_lang }}">{{ "About" if is_en_lang else "연구실 소개" }}</a>
+            <a href="{{ '/projects?lang=' ~ current_lang }}"
               >{{ "Research" if is_en_lang else "연구 분야" }}</a
             >
-            <a href="{{ '/?lang=' ~ current_lang ~ '#publications' }}"
+            <a href="{{ '/publications?lang=' ~ current_lang }}"
               >{{ "Publications" if is_en_lang else "연구성과" }}</a
             >
-            <a href="{{ '/?lang=' ~ current_lang ~ '#members' }}"
+            <a href="{{ '/members?lang=' ~ current_lang }}"
               >{{ "Members" if is_en_lang else "구성원" }}</a
             >
-            <a href="{{ '/?lang=' ~ current_lang ~ '#news' }}">{{ "News" if is_en_lang else "소식" }}</a>
-            <a href="{{ '/?lang=' ~ current_lang ~ '#contact' }}"
+            <a href="{{ '/contact?lang=' ~ current_lang }}"
               >{{ "Contact" if is_en_lang else "연락처" }}</a
             >
           </nav>
