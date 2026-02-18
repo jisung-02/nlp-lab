@@ -10,39 +10,26 @@
   </div>
 </section>
 <section class="page-content">
-  <div class="container project-detail-page project-detail-shell">
-    <article class="list-card project-overview project-overview-card">
-      <p class="project-overview-label">{{ "Overview" if is_en else "프로젝트 개요" }}</p>
-      <p class="project-overview-description">{{ project.description }}</p>
-      <dl class="project-meta-grid">
-        <div class="project-meta-item">
-          <dt>{{ "Status" if is_en else "상태" }}</dt>
-          <dd>
-            {% if project.status.value == "ongoing" %}
-            {{ "Ongoing" if is_en else "진행중" }}
-            {% else %}
-            {{ "Completed" if is_en else "완료" }}
-            {% endif %}
-          </dd>
-        </div>
-        <div class="project-meta-item">
-          <dt>{{ "Period" if is_en else "기간" }}</dt>
-          <dd>
-            {{ project.start_date }}{% if project.end_date %} ~ {{ project.end_date }}{% else %} ~ {% if is_en
-            %}Present{% else %}현재{% endif %}{% endif %}
-          </dd>
-        </div>
-      </dl>
+  <div class="container">
+    <article class="stack-item project-overview-flat">
+      <p class="meta">{{ "Overview" if is_en else "프로젝트 개요" }}</p>
+      <p>{{ project.description }}</p>
+      <p class="meta">
+        {{ "Status" if is_en else "상태" }} · {% if project.status.value == "ongoing" %}{{ "Ongoing" if is_en
+        else "진행중" }}{% else %}{{ "Completed" if is_en else "완료" }}{% endif %}
+      </p>
+      <p class="meta">
+        {{ "Period" if is_en else "기간" }} · {{ project.start_date }}{% if project.end_date %} ~ {{
+        project.end_date }}{% else %} ~ {% if is_en %}Present{% else %}현재{% endif %}{% endif %}
+      </p>
     </article>
 
-    <section class="project-publications-card">
-      <div class="project-publications-header">
-        <h2>{{ "Related Publications" if is_en else "연관 논문" }}</h2>
-      </div>
+    <section class="project-publications-section">
+      <h2 class="project-section-title">{{ "Related Publications" if is_en else "연관 논문" }}</h2>
       {% if publications %}
-      <div class="list-stack project-publications-list">
+      <div class="list-stack">
         {% for publication in publications %}
-        <article class="stack-item project-publication-item">
+        <article class="stack-item">
           <p class="meta">{{ publication.year }} · {{ publication.venue }}</p>
           <h3>{{ publication.title }}</h3>
           <p>{{ publication.authors }}</p>

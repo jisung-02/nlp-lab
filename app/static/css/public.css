@@ -772,7 +772,7 @@
 
 .public-page .project-detail-page {
   display: grid;
-  gap: 28px;
+  gap: 18px;
 }
 
 .public-page .project-overview {
@@ -785,7 +785,8 @@
 }
 
 .public-page .project-overview-card {
-  border-radius: 18px;
+  margin: 0;
+  border-radius: 16px;
   background: linear-gradient(180deg, #fff 0%, rgb(250 251 253 / 0.95) 100%);
 }
 
@@ -835,23 +836,31 @@
 }
 
 .public-page .project-publications-card {
-  border: 1px solid var(--line);
+  margin: 0;
   border-radius: 16px;
-  padding: 18px;
-  background: var(--surface);
+  background: linear-gradient(180deg, #fff 0%, rgb(250 251 253 / 0.95) 100%);
 }
 
-.public-page .project-publications-header h2 {
+.public-page .project-publications-card h2 {
   margin: 0 0 8px;
 }
 
 .public-page .project-publications-list {
-  gap: 12px;
+  gap: 0;
 }
 
 .public-page .project-publication-item {
   margin: 0;
   padding: 14px 0;
+}
+
+.public-page .project-publication-item:first-child {
+  padding-top: 6px;
+}
+
+.public-page .project-publication-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .public-page .project-publication-item p {
@@ -860,6 +869,42 @@
 
 .public-page .project-publication-item h3 {
   margin-top: 6px;
+}
+
+.public-page .project-overview-flat {
+  display: grid;
+  gap: 10px;
+}
+
+.public-page .project-publications-section {
+  margin-top: 20px;
+}
+
+.public-page .project-section-title {
+  margin: 0 0 8px;
+  font-family: "Fraunces", serif;
+}
+
+.public-page .publications-list-card {
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff 0%, rgb(250 251 253 / 0.95) 100%);
+}
+
+.public-page .publications-list-card .list-stack {
+  gap: 0;
+}
+
+.public-page .publications-list-card .stack-item {
+  padding: 14px 0;
+}
+
+.public-page .publications-list-card .stack-item:first-child {
+  padding-top: 4px;
+}
+
+.public-page .publications-list-card .stack-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .public-page .empty-state {
