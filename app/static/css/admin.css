@@ -43,6 +43,28 @@
   justify-content: flex-start;
 }
 
+.admin-page .site-brand {
+  font-family: "Fraunces", serif;
+  letter-spacing: 0.4px;
+}
+
+.admin-page .site-brand .brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-page .site-brand .brand-top {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.admin-page .site-brand .brand-sub {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--admin-muted);
+}
+
 .admin-page .site-brand .brand-mark {
   width: 22px;
   height: 22px;
