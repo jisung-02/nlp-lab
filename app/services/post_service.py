@@ -20,8 +20,10 @@ _HOME_HERO_DEFAULT_URL = "/static/images/hero/hero.jpg"
 def parse_post_create_input(
     *,
     title: str,
+    title_en: str | None,
     slug: str,
     content: str,
+    content_en: str | None,
     is_published: str,
 ) -> PostCreateInput | None:
     """Return validated create payload or ``None``."""
@@ -29,8 +31,10 @@ def parse_post_create_input(
     return _parse_post_input(
         PostCreateInput,
         title=title,
+        title_en=title_en,
         slug=slug,
         content=content,
+        content_en=content_en,
         is_published=is_published,
     )
 
@@ -38,8 +42,10 @@ def parse_post_create_input(
 def parse_post_update_input(
     *,
     title: str,
+    title_en: str | None,
     slug: str,
     content: str,
+    content_en: str | None,
     is_published: str,
 ) -> PostUpdateInput | None:
     """Return validated update payload or ``None``."""
@@ -47,8 +53,10 @@ def parse_post_update_input(
     return _parse_post_input(
         PostUpdateInput,
         title=title,
+        title_en=title_en,
         slug=slug,
         content=content,
+        content_en=content_en,
         is_published=is_published,
     )
 
@@ -57,16 +65,25 @@ def _parse_post_input[TInputModel: BaseModel](
     model_class: type[TInputModel],
     *,
     title: str,
+    title_en: str | None,
     slug: str,
     content: str,
+    content_en: str | None,
     is_published: str,
 ) -> TInputModel | None:
+    fallback_title = title_en.strip() if isinstance(title_en, str) else ""
+    fallback_content = content_en.strip() if isinstance(content_en, str) else ""
+    resolved_title = title.strip() or fallback_title
+    resolved_content = content.strip() or fallback_content
+
     try:
         return model_class.model_validate(
             {
-                "title": title,
+                "title": resolved_title,
+                "title_en": title_en,
                 "slug": slug,
-                "content": content,
+                "content": resolved_content,
+                "content_en": content_en,
                 "is_published": is_published,
             }
         )
@@ -150,8 +167,10 @@ def create_post(session: Session, input_data: PostCreateInput) -> tuple[Post | N
 
     post = Post(
         title=input_data.title,
+        title_en=input_data.title_en,
         slug=input_data.slug,
         content=input_data.content,
+        content_en=input_data.content_en,
         is_published=input_data.is_published,
     )
     return post_repo.create_post(session, post), None
@@ -173,8 +192,10 @@ def update_post(
         return None, "이미 사용 중인 slug입니다."
 
     post.title = input_data.title
+    post.title_en = input_data.title_en
     post.slug = input_data.slug
     post.content = input_data.content
+    post.content_en = input_data.content_en
     post.is_published = input_data.is_published
 
     return post_repo.update_post(session, post), None

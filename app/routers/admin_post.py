@@ -53,6 +53,8 @@ def create_post(
     hero_image_filenames: Annotated[list[str], Form(default_factory=list)],
     hero_image_files: Annotated[list[UploadFile], File(default_factory=list)],
     hero_image_remove_urls: Annotated[list[str], Form(default_factory=list)],
+    title_en: Annotated[str | None, Form()] = None,
+    content_en: Annotated[str | None, Form()] = None,
     is_published: Annotated[str, Form()] = "true",
     csrf_token: Annotated[str, Form()] = "",
 ):
@@ -79,8 +81,10 @@ def create_post(
 
     create_input = post_service.parse_post_create_input(
         title=title,
+        title_en=title_en,
         slug=slug,
         content=content_to_save,
+        content_en=content_en,
         is_published=is_published,
     )
     if create_input is None:
@@ -115,6 +119,8 @@ def update_post(
     hero_image_filenames: Annotated[list[str], Form(default_factory=list)],
     hero_image_files: Annotated[list[UploadFile], File(default_factory=list)],
     hero_image_remove_urls: Annotated[list[str], Form(default_factory=list)],
+    title_en: Annotated[str | None, Form()] = None,
+    content_en: Annotated[str | None, Form()] = None,
     is_published: Annotated[str, Form()] = "true",
     csrf_token: Annotated[str, Form()] = "",
 ):
@@ -141,8 +147,10 @@ def update_post(
 
     update_input = post_service.parse_post_update_input(
         title=title,
+        title_en=title_en,
         slug=slug,
         content=content_to_save,
+        content_en=content_en,
         is_published=is_published,
     )
     if update_input is None:
@@ -296,8 +304,7 @@ def _sync_missing_home_hero_image_urls(
     valid_urls = [
         _HERO_IMAGE_DEFAULT_URL if _is_default_hero_image_url(hero_image_url) else hero_image_url
         for hero_image_url in hero_image_urls
-        if _is_default_hero_image_url(hero_image_url)
-        or _hero_image_file_exists(hero_image_url)
+        if _is_default_hero_image_url(hero_image_url) or _hero_image_file_exists(hero_image_url)
     ]
     if valid_urls == hero_image_urls:
         if hero_image_post.content == _join_hero_image_urls(valid_urls):
@@ -420,9 +427,7 @@ def _rename_hero_images(
 
     rename_requests = dict(
         (old_url.strip(), new_name.strip())
-        for old_url, new_name in zip(
-            hero_image_existing_urls, hero_image_filenames, strict=False
-        )
+        for old_url, new_name in zip(hero_image_existing_urls, hero_image_filenames, strict=False)
         if old_url.strip() and new_name.strip()
     )
     if not rename_requests:

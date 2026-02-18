@@ -41,6 +41,8 @@
     {% if projects %}
     <div class="list-stack">
       {% for project in projects %}
+      {% set localized_title = (project.title_en if is_en else project.title) or (project.title if is_en else project.title_en) %}
+      {% set localized_summary = (project.summary_en if is_en else project.summary) or (project.summary if is_en else project.summary_en) %}
       <article class="stack-item">
         <p class="meta">
           {% if project.status.value == "ongoing" %}
@@ -50,8 +52,8 @@
           {% endif %}
           · {{ project.start_date }}{% if project.end_date %} ~ {{ project.end_date }}{% endif %}
         </p>
-        <h3><a href="{{ '/projects/' ~ project.slug ~ '?lang=' ~ lang }}">{{ project.title }}</a></h3>
-        <p>{{ project.summary }}</p>
+        <h3><a href="{{ '/projects/' ~ project.slug ~ '?lang=' ~ lang }}">{{ localized_title }}</a></h3>
+        <p>{{ localized_summary }}</p>
         <a class="text-link" href="{{ '/projects/' ~ project.slug ~ '?lang=' ~ lang }}"
           >{{ "View Detail" if is_en else "상세 보기" }}</a
         >

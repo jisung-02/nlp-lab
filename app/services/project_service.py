@@ -15,22 +15,35 @@ from app.schemas.project import ProjectCreateInput, ProjectUpdateInput
 def parse_project_create_input(
     *,
     title: str,
+    title_en: str | None,
     slug: str,
     summary: str,
+    summary_en: str | None,
     description: str,
+    description_en: str | None,
     status: str,
     start_date: str,
     end_date: str | None,
 ) -> ProjectCreateInput | None:
     """Return validated create payload or ``None``."""
 
+    fallback_title = title_en.strip() if isinstance(title_en, str) else ""
+    fallback_summary = summary_en.strip() if isinstance(summary_en, str) else ""
+    fallback_description = description_en.strip() if isinstance(description_en, str) else ""
+    resolved_title = title.strip() or fallback_title
+    resolved_summary = summary.strip() or fallback_summary
+    resolved_description = description.strip() or fallback_description
+
     try:
         return ProjectCreateInput.model_validate(
             {
-                "title": title,
+                "title": resolved_title,
+                "title_en": title_en,
                 "slug": slug,
-                "summary": summary,
-                "description": description,
+                "summary": resolved_summary,
+                "summary_en": summary_en,
+                "description": resolved_description,
+                "description_en": description_en,
                 "status": status,
                 "start_date": start_date,
                 "end_date": end_date,
@@ -43,22 +56,35 @@ def parse_project_create_input(
 def parse_project_update_input(
     *,
     title: str,
+    title_en: str | None,
     slug: str,
     summary: str,
+    summary_en: str | None,
     description: str,
+    description_en: str | None,
     status: str,
     start_date: str,
     end_date: str | None,
 ) -> ProjectUpdateInput | None:
     """Return validated update payload or ``None``."""
 
+    fallback_title = title_en.strip() if isinstance(title_en, str) else ""
+    fallback_summary = summary_en.strip() if isinstance(summary_en, str) else ""
+    fallback_description = description_en.strip() if isinstance(description_en, str) else ""
+    resolved_title = title.strip() or fallback_title
+    resolved_summary = summary.strip() or fallback_summary
+    resolved_description = description.strip() or fallback_description
+
     try:
         return ProjectUpdateInput.model_validate(
             {
-                "title": title,
+                "title": resolved_title,
+                "title_en": title_en,
                 "slug": slug,
-                "summary": summary,
-                "description": description,
+                "summary": resolved_summary,
+                "summary_en": summary_en,
+                "description": resolved_description,
+                "description_en": description_en,
                 "status": status,
                 "start_date": start_date,
                 "end_date": end_date,
@@ -85,9 +111,12 @@ def create_project(
 
     project = Project(
         title=input_data.title,
+        title_en=input_data.title_en,
         slug=input_data.slug,
         summary=input_data.summary,
+        summary_en=input_data.summary_en,
         description=input_data.description,
+        description_en=input_data.description_en,
         status=input_data.status,
         start_date=input_data.start_date,
         end_date=input_data.end_date,
@@ -111,9 +140,12 @@ def update_project(
         return None, "이미 사용 중인 slug입니다."
 
     project.title = input_data.title
+    project.title_en = input_data.title_en
     project.slug = input_data.slug
     project.summary = input_data.summary
+    project.summary_en = input_data.summary_en
     project.description = input_data.description
+    project.description_en = input_data.description_en
     project.status = input_data.status
     project.start_date = input_data.start_date
     project.end_date = input_data.end_date

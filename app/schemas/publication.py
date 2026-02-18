@@ -11,8 +11,11 @@ class PublicationBaseInput(BaseModel):
     """Shared publication form fields."""
 
     title: str = Field(min_length=1, max_length=300)
+    title_en: str | None = Field(default=None, max_length=300)
     authors: str = Field(min_length=1, max_length=500)
+    authors_en: str | None = Field(default=None, max_length=500)
     venue: str = Field(min_length=1, max_length=255)
+    venue_en: str | None = Field(default=None, max_length=255)
     year: int = Field(ge=1900, le=3000)
     link: str | None = Field(default=None, max_length=500)
     related_project_id: int | None = None
@@ -23,6 +26,14 @@ class PublicationBaseInput(BaseModel):
         if isinstance(value, str):
             return value.strip()
         return value
+
+    @field_validator("title_en", "authors_en", "venue_en", mode="before")
+    @classmethod
+    def _normalize_optional_text(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+        normalized = value.strip()
+        return normalized or None
 
     @field_validator("link", mode="before")
     @classmethod

@@ -80,6 +80,8 @@
       {% if projects %}
       <div class="list-stack">
         {% for project in projects %}
+        {% set localized_title = (project.title_en if is_en else project.title) or (project.title if is_en else project.title_en) %}
+        {% set localized_summary = (project.summary_en if is_en else project.summary) or (project.summary if is_en else project.summary_en) %}
         <article class="stack-item">
           <p class="meta">
             {{ project.status.value | replace('_', ' ') | title }}
@@ -87,8 +89,8 @@
             · {{ project.start_date }}
             {% endif %}
           </p>
-          <h3><a href="{{ '/projects/' ~ project.slug ~ '?lang=' ~ lang }}">{{ project.title }}</a></h3>
-          <p>{{ project.summary }}</p>
+          <h3><a href="{{ '/projects/' ~ project.slug ~ '?lang=' ~ lang }}">{{ localized_title }}</a></h3>
+          <p>{{ localized_summary }}</p>
         </article>
         {% endfor %}
       </div>
@@ -114,10 +116,13 @@
       {% if publications %}
       <div class="list-stack">
         {% for publication in publications %}
+        {% set localized_title = (publication.title_en if is_en else publication.title) or (publication.title if is_en else publication.title_en) %}
+        {% set localized_authors = (publication.authors_en if is_en else publication.authors) or (publication.authors if is_en else publication.authors_en) %}
+        {% set localized_venue = (publication.venue_en if is_en else publication.venue) or (publication.venue if is_en else publication.venue_en) %}
         <article class="stack-item">
-          <p class="meta">{{ publication.year }} · {{ publication.venue }}</p>
-          <h3>{{ publication.title }}</h3>
-          <p>{{ publication.authors }}</p>
+          <p class="meta">{{ publication.year }} · {{ localized_venue }}</p>
+          <h3>{{ localized_title }}</h3>
+          <p>{{ localized_authors }}</p>
         </article>
         {% endfor %}
       </div>
@@ -186,10 +191,12 @@
       {% if posts %}
       <div class="list-stack">
         {% for post in posts %}
+        {% set localized_title = (post.title_en if is_en else post.title) or (post.title if is_en else post.title_en) %}
+        {% set localized_content = (post.content_en if is_en else post.content) or (post.content if is_en else post.content_en) %}
         <article class="stack-item">
           <p class="meta">{{ post.created_at.date() }}</p>
-          <h3>{{ post.title }}</h3>
-          <p>{{ post.content[:120] }}{% if post.content | length > 120 %}...{% endif %}</p>
+          <h3>{{ localized_title }}</h3>
+          <p>{{ localized_content[:120] }}{% if localized_content | length > 120 %}...{% endif %}</p>
         </article>
         {% endfor %}
       </div>

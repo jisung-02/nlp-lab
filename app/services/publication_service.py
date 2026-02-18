@@ -16,20 +16,33 @@ from app.schemas.publication import PublicationCreateInput, PublicationUpdateInp
 def parse_publication_create_input(
     *,
     title: str,
+    title_en: str | None,
     authors: str,
+    authors_en: str | None,
     venue: str,
+    venue_en: str | None,
     year: str,
     link: str | None,
     related_project_id: str | None,
 ) -> PublicationCreateInput | None:
     """Return validated create payload or ``None``."""
 
+    fallback_title = title_en.strip() if isinstance(title_en, str) else ""
+    fallback_authors = authors_en.strip() if isinstance(authors_en, str) else ""
+    fallback_venue = venue_en.strip() if isinstance(venue_en, str) else ""
+    resolved_title = title.strip() or fallback_title
+    resolved_authors = authors.strip() or fallback_authors
+    resolved_venue = venue.strip() or fallback_venue
+
     try:
         return PublicationCreateInput.model_validate(
             {
-                "title": title,
-                "authors": authors,
-                "venue": venue,
+                "title": resolved_title,
+                "title_en": title_en,
+                "authors": resolved_authors,
+                "authors_en": authors_en,
+                "venue": resolved_venue,
+                "venue_en": venue_en,
                 "year": year,
                 "link": link,
                 "related_project_id": related_project_id,
@@ -42,20 +55,33 @@ def parse_publication_create_input(
 def parse_publication_update_input(
     *,
     title: str,
+    title_en: str | None,
     authors: str,
+    authors_en: str | None,
     venue: str,
+    venue_en: str | None,
     year: str,
     link: str | None,
     related_project_id: str | None,
 ) -> PublicationUpdateInput | None:
     """Return validated update payload or ``None``."""
 
+    fallback_title = title_en.strip() if isinstance(title_en, str) else ""
+    fallback_authors = authors_en.strip() if isinstance(authors_en, str) else ""
+    fallback_venue = venue_en.strip() if isinstance(venue_en, str) else ""
+    resolved_title = title.strip() or fallback_title
+    resolved_authors = authors.strip() or fallback_authors
+    resolved_venue = venue.strip() or fallback_venue
+
     try:
         return PublicationUpdateInput.model_validate(
             {
-                "title": title,
-                "authors": authors,
-                "venue": venue,
+                "title": resolved_title,
+                "title_en": title_en,
+                "authors": resolved_authors,
+                "authors_en": authors_en,
+                "venue": resolved_venue,
+                "venue_en": venue_en,
                 "year": year,
                 "link": link,
                 "related_project_id": related_project_id,
@@ -90,8 +116,11 @@ def create_publication(
 
     publication = Publication(
         title=input_data.title,
+        title_en=input_data.title_en,
         authors=input_data.authors,
+        authors_en=input_data.authors_en,
         venue=input_data.venue,
+        venue_en=input_data.venue_en,
         year=input_data.year,
         link=input_data.link,
         related_project_id=input_data.related_project_id,
@@ -116,8 +145,11 @@ def update_publication(
             return None, "연결할 프로젝트를 찾을 수 없습니다."
 
     publication.title = input_data.title
+    publication.title_en = input_data.title_en
     publication.authors = input_data.authors
+    publication.authors_en = input_data.authors_en
     publication.venue = input_data.venue
+    publication.venue_en = input_data.venue_en
     publication.year = input_data.year
     publication.link = input_data.link
     publication.related_project_id = input_data.related_project_id

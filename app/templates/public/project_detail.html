@@ -1,19 +1,22 @@
 {% extends "base.html" %}
-{% block title %}{{ project.title }} | NLP Lab{% endblock %}
+{% block title %}{{ ((project.title_en if is_en else project.title) or (project.title if is_en else project.title_en)) }} | NLP Lab{% endblock %}
 {% block body_class %}public-page public-project-detail{% endblock %}
 {% block content %}
+{% set localized_project_title = (project.title_en if is_en else project.title) or (project.title if is_en else project.title_en) %}
+{% set localized_project_summary = (project.summary_en if is_en else project.summary) or (project.summary if is_en else project.summary_en) %}
+{% set localized_project_description = (project.description_en if is_en else project.description) or (project.description if is_en else project.description_en) %}
 <section class="page-hero">
   <div class="container">
     <p class="eyebrow">{{ "Project" if is_en else "프로젝트" }}</p>
-    <h1>{{ project.title }}</h1>
-    <p class="lead">{{ project.summary }}</p>
+    <h1>{{ localized_project_title }}</h1>
+    <p class="lead">{{ localized_project_summary }}</p>
   </div>
 </section>
 <section class="page-content">
   <div class="container">
     <article class="stack-item project-overview-flat">
       <p class="meta">{{ "Overview" if is_en else "프로젝트 개요" }}</p>
-      <p>{{ project.description }}</p>
+      <p>{{ localized_project_description }}</p>
       <p class="meta">
         {{ "Status" if is_en else "상태" }} · {% if project.status.value == "ongoing" %}{{ "Ongoing" if is_en
         else "진행중" }}{% else %}{{ "Completed" if is_en else "완료" }}{% endif %}
@@ -29,10 +32,13 @@
       {% if publications %}
       <div class="list-stack">
         {% for publication in publications %}
+        {% set localized_title = (publication.title_en if is_en else publication.title) or (publication.title if is_en else publication.title_en) %}
+        {% set localized_authors = (publication.authors_en if is_en else publication.authors) or (publication.authors if is_en else publication.authors_en) %}
+        {% set localized_venue = (publication.venue_en if is_en else publication.venue) or (publication.venue if is_en else publication.venue_en) %}
         <article class="stack-item">
-          <p class="meta">{{ publication.year }} · {{ publication.venue }}</p>
-          <h3>{{ publication.title }}</h3>
-          <p>{{ publication.authors }}</p>
+          <p class="meta">{{ publication.year }} · {{ localized_venue }}</p>
+          <h3>{{ localized_title }}</h3>
+          <p>{{ localized_authors }}</p>
           {% if publication.link %}
           <a class="text-link" href="{{ publication.link }}" target="_blank" rel="noopener noreferrer">Link</a>
           {% endif %}

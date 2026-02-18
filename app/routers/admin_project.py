@@ -32,6 +32,9 @@ def create_project(
     description: Annotated[str, Form()],
     status_value: Annotated[str, Form(alias="status")],
     start_date: Annotated[str, Form()],
+    title_en: Annotated[str | None, Form()] = None,
+    summary_en: Annotated[str | None, Form()] = None,
+    description_en: Annotated[str | None, Form()] = None,
     end_date: Annotated[str | None, Form()] = None,
     csrf_token: Annotated[str, Form()] = "",
 ):
@@ -39,9 +42,12 @@ def create_project(
 
     create_input = project_service.parse_project_create_input(
         title=title,
+        title_en=title_en,
         slug=slug,
         summary=summary,
+        summary_en=summary_en,
         description=description,
+        description_en=description_en,
         status=status_value,
         start_date=start_date,
         end_date=end_date,
@@ -77,6 +83,9 @@ def update_project(
     description: Annotated[str, Form()],
     status_value: Annotated[str, Form(alias="status")],
     start_date: Annotated[str, Form()],
+    title_en: Annotated[str | None, Form()] = None,
+    summary_en: Annotated[str | None, Form()] = None,
+    description_en: Annotated[str | None, Form()] = None,
     end_date: Annotated[str | None, Form()] = None,
     csrf_token: Annotated[str, Form()] = "",
 ):
@@ -84,9 +93,12 @@ def update_project(
 
     update_input = project_service.parse_project_update_input(
         title=title,
+        title_en=title_en,
         slug=slug,
         summary=summary,
+        summary_en=summary_en,
         description=description,
+        description_en=description_en,
         status=status_value,
         start_date=start_date,
         end_date=end_date,

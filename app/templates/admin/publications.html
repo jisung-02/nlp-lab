@@ -47,9 +47,12 @@
       <h2>논문 생성</h2>
       <form action="/admin/publications" method="post" class="admin-form form-grid">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <label class="full-row">제목 <input type="text" name="title" maxlength="300" required /></label>
-        <label>저자 <input type="text" name="authors" maxlength="500" required /></label>
-        <label>학회/저널 <input type="text" name="venue" maxlength="255" required /></label>
+        <label class="full-row">제목(한글) <input type="text" name="title" maxlength="300" /></label>
+        <label class="full-row">제목(영문) <input type="text" name="title_en" maxlength="300" /></label>
+        <label>저자(한글) <input type="text" name="authors" maxlength="500" /></label>
+        <label>저자(영문) <input type="text" name="authors_en" maxlength="500" /></label>
+        <label>학회/저널(한글) <input type="text" name="venue" maxlength="255" /></label>
+        <label>학회/저널(영문) <input type="text" name="venue_en" maxlength="255" /></label>
         <label>연도 <input type="number" name="year" min="1900" max="3000" required /></label>
         <label>링크 <input type="url" name="link" maxlength="500" /></label>
         <label>
@@ -85,9 +88,12 @@
               <div class="entity-actions">
                 <form action="/admin/publications/{{ publication.id }}/update" method="post" class="admin-form form-grid">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-                  <label class="full-row">제목 <input type="text" name="title" value="{{ publication.title }}" maxlength="300" required /></label>
-                  <label>저자 <input type="text" name="authors" value="{{ publication.authors }}" maxlength="500" required /></label>
-                  <label>학회/저널 <input type="text" name="venue" value="{{ publication.venue }}" maxlength="255" required /></label>
+                  <label class="full-row">제목(한글) <input type="text" name="title" value="{{ publication.title }}" maxlength="300" /></label>
+                  <label class="full-row">제목(영문) <input type="text" name="title_en" value="{{ publication.title_en or '' }}" maxlength="300" /></label>
+                  <label>저자(한글) <input type="text" name="authors" value="{{ publication.authors }}" maxlength="500" /></label>
+                  <label>저자(영문) <input type="text" name="authors_en" value="{{ publication.authors_en or '' }}" maxlength="500" /></label>
+                  <label>학회/저널(한글) <input type="text" name="venue" value="{{ publication.venue }}" maxlength="255" /></label>
+                  <label>학회/저널(영문) <input type="text" name="venue_en" value="{{ publication.venue_en or '' }}" maxlength="255" /></label>
                   <label>연도 <input type="number" name="year" value="{{ publication.year }}" min="1900" max="3000" required /></label>
                   <label>링크 <input type="url" name="link" value="{{ publication.link or '' }}" maxlength="500" /></label>
                   <label>

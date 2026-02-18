@@ -232,6 +232,133 @@ def test_members_page_displays_language_specific_name_and_bio_with_fallback(app_
     assert "English Intro C" in en_response.text
 
 
+def test_project_publication_post_pages_display_language_content_with_fallback(app_and_engine):
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    app, engine = app_and_engine
+    with Session(engine) as session:
+        bilingual_project = Project(
+            title="프로젝트-국문",
+            title_en="PROJECT_EN_ONLY",
+            slug="project-lang-a",
+            summary="PROJECT_SUMMARY_KR_ONLY",
+            summary_en="PROJECT_SUMMARY_EN_ONLY",
+            description="PROJECT_DESC_KR_ONLY",
+            description_en="PROJECT_DESC_EN_ONLY",
+            status=ProjectStatus.ONGOING,
+            start_date=date(2025, 1, 1),
+            end_date=None,
+            created_at=_dt(1),
+            updated_at=_dt(1),
+        )
+        fallback_project = Project(
+            title="PROJECT_FALLBACK_KR_ONLY",
+            title_en=None,
+            slug="project-lang-b",
+            summary="PROJECT_FALLBACK_SUMMARY_KR_ONLY",
+            summary_en=None,
+            description="PROJECT_FALLBACK_DESC_KR_ONLY",
+            description_en=None,
+            status=ProjectStatus.COMPLETED,
+            start_date=date(2024, 1, 1),
+            end_date=date(2024, 12, 31),
+            created_at=_dt(2),
+            updated_at=_dt(2),
+        )
+        session.add_all([bilingual_project, fallback_project])
+        session.commit()
+        session.refresh(bilingual_project)
+
+        session.add_all(
+            [
+                Publication(
+                    title="PUBLICATION_KR_ONLY",
+                    title_en="PUBLICATION_EN_ONLY",
+                    authors="AUTHORS_KR_ONLY",
+                    authors_en="AUTHORS_EN_ONLY",
+                    venue="VENUE_KR_ONLY",
+                    venue_en="VENUE_EN_ONLY",
+                    year=2026,
+                    link=None,
+                    related_project_id=bilingual_project.id,
+                    created_at=_dt(3),
+                ),
+                Publication(
+                    title="PUBLICATION_FALLBACK_KR_ONLY",
+                    title_en=None,
+                    authors="AUTHORS_FALLBACK_KR_ONLY",
+                    authors_en=None,
+                    venue="VENUE_FALLBACK_KR_ONLY",
+                    venue_en=None,
+                    year=2025,
+                    link=None,
+                    related_project_id=bilingual_project.id,
+                    created_at=_dt(4),
+                ),
+                Post(
+                    title="POST_KR_ONLY",
+                    title_en="POST_EN_ONLY",
+                    slug="post-lang-a",
+                    content="POST_CONTENT_KR_ONLY",
+                    content_en="POST_CONTENT_EN_ONLY",
+                    is_published=True,
+                    created_at=_dt(5),
+                    updated_at=_dt(5),
+                ),
+                Post(
+                    title="POST_FALLBACK_KR_ONLY",
+                    title_en=None,
+                    slug="post-lang-b",
+                    content="POST_FALLBACK_CONTENT_KR_ONLY",
+                    content_en=None,
+                    is_published=True,
+                    created_at=_dt(6),
+                    updated_at=_dt(6),
+                ),
+            ]
+        )
+        session.commit()
+
+    client = TestClient(app)
+
+    projects_ko = client.get("/projects?lang=kr")
+    assert projects_ko.status_code == 200
+    assert "프로젝트-국문" in projects_ko.text
+    assert "PROJECT_SUMMARY_KR_ONLY" in projects_ko.text
+    assert "PROJECT_EN_ONLY" not in projects_ko.text
+
+    projects_en = client.get("/projects?lang=en")
+    assert projects_en.status_code == 200
+    assert "PROJECT_EN_ONLY" in projects_en.text
+    assert "PROJECT_SUMMARY_EN_ONLY" in projects_en.text
+    assert "PROJECT_FALLBACK_KR_ONLY" in projects_en.text
+    assert "PROJECT_FALLBACK_SUMMARY_KR_ONLY" in projects_en.text
+
+    project_detail_en = client.get("/projects/project-lang-a?lang=en")
+    assert project_detail_en.status_code == 200
+    assert "PROJECT_EN_ONLY" in project_detail_en.text
+    assert "PROJECT_DESC_EN_ONLY" in project_detail_en.text
+    assert "PUBLICATION_EN_ONLY" in project_detail_en.text
+    assert "AUTHORS_EN_ONLY" in project_detail_en.text
+    assert "VENUE_EN_ONLY" in project_detail_en.text
+
+    publications_en = client.get("/publications?lang=en")
+    assert publications_en.status_code == 200
+    assert "PUBLICATION_EN_ONLY" in publications_en.text
+    assert "AUTHORS_EN_ONLY" in publications_en.text
+    assert "VENUE_EN_ONLY" in publications_en.text
+    assert "PUBLICATION_FALLBACK_KR_ONLY" in publications_en.text
+    assert "AUTHORS_FALLBACK_KR_ONLY" in publications_en.text
+
+    home_en = client.get("/?lang=en")
+    assert home_en.status_code == 200
+    assert "POST_EN_ONLY" in home_en.text
+    assert "POST_CONTENT_EN_ONLY" in home_en.text
+    assert "POST_FALLBACK_KR_ONLY" in home_en.text
+    assert "POST_FALLBACK_CONTENT_KR_ONLY" in home_en.text
+
+
 def test_project_detail_returns_404_for_unknown_slug(app_and_engine):
     app, engine = app_and_engine
     with Session(engine) as session:

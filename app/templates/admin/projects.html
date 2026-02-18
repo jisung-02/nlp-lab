@@ -47,10 +47,13 @@
       <h2>프로젝트 생성</h2>
       <form action="/admin/projects" method="post" class="admin-form form-grid">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-        <label>제목 <input type="text" name="title" maxlength="200" required /></label>
+        <label>제목(한글) <input type="text" name="title" maxlength="200" /></label>
+        <label>제목(영문) <input type="text" name="title_en" maxlength="200" /></label>
         <label>Slug <input type="text" name="slug" maxlength="150" required /></label>
-        <label class="full-row">요약 <input type="text" name="summary" maxlength="300" required /></label>
-        <label class="full-row">설명 <textarea name="description" maxlength="8000" required></textarea></label>
+        <label class="full-row">요약(한글) <input type="text" name="summary" maxlength="300" /></label>
+        <label class="full-row">요약(영문) <input type="text" name="summary_en" maxlength="300" /></label>
+        <label class="full-row">설명(한글) <textarea name="description" maxlength="8000"></textarea></label>
+        <label class="full-row">설명(영문) <textarea name="description_en" maxlength="8000"></textarea></label>
         <label>
           상태
           <select name="status" required>
@@ -85,10 +88,19 @@
               <div class="entity-actions">
                 <form action="/admin/projects/{{ project.id }}/update" method="post" class="admin-form form-grid">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-                  <label>제목 <input type="text" name="title" value="{{ project.title }}" maxlength="200" required /></label>
+                  <label>
+                    제목(한글)
+                    <input type="text" name="title" value="{{ project.title }}" maxlength="200" />
+                  </label>
+                  <label>
+                    제목(영문)
+                    <input type="text" name="title_en" value="{{ project.title_en or '' }}" maxlength="200" />
+                  </label>
                   <label>Slug <input type="text" name="slug" value="{{ project.slug }}" maxlength="150" required /></label>
-                  <label class="full-row">요약 <input type="text" name="summary" value="{{ project.summary }}" maxlength="300" required /></label>
-                  <label class="full-row">설명 <textarea name="description" maxlength="8000" required>{{ project.description }}</textarea></label>
+                  <label class="full-row">요약(한글) <input type="text" name="summary" value="{{ project.summary }}" maxlength="300" /></label>
+                  <label class="full-row">요약(영문) <input type="text" name="summary_en" value="{{ project.summary_en or '' }}" maxlength="300" /></label>
+                  <label class="full-row">설명(한글) <textarea name="description" maxlength="8000">{{ project.description }}</textarea></label>
+                  <label class="full-row">설명(영문) <textarea name="description_en" maxlength="8000">{{ project.description_en or '' }}</textarea></label>
                   <label>
                     상태
                     <select name="status" required>

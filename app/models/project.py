@@ -20,9 +20,12 @@ class Project(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     title: str = Field(sa_column=Column(String(200), nullable=False))
+    title_en: str | None = Field(default=None, sa_column=Column(String(200), nullable=True))
     slug: str = Field(sa_column=Column(String(150), unique=True, nullable=False))
     summary: str = Field(sa_column=Column(String(300), nullable=False))
+    summary_en: str | None = Field(default=None, sa_column=Column(String(300), nullable=True))
     description: str = Field(sa_column=Column(String(8000), nullable=False))
+    description_en: str | None = Field(default=None, sa_column=Column(String(8000), nullable=True))
     status: ProjectStatus = Field(
         sa_column=Column(
             SAEnum(

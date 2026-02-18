@@ -29,6 +29,9 @@ def create_publication(
     authors: Annotated[str, Form()],
     venue: Annotated[str, Form()],
     year: Annotated[str, Form()],
+    title_en: Annotated[str | None, Form()] = None,
+    authors_en: Annotated[str | None, Form()] = None,
+    venue_en: Annotated[str | None, Form()] = None,
     link: Annotated[str | None, Form()] = None,
     related_project_id: Annotated[str | None, Form()] = None,
     csrf_token: Annotated[str, Form()] = "",
@@ -37,8 +40,11 @@ def create_publication(
 
     create_input = publication_service.parse_publication_create_input(
         title=title,
+        title_en=title_en,
         authors=authors,
+        authors_en=authors_en,
         venue=venue,
+        venue_en=venue_en,
         year=year,
         link=link,
         related_project_id=related_project_id,
@@ -72,6 +78,9 @@ def update_publication(
     authors: Annotated[str, Form()],
     venue: Annotated[str, Form()],
     year: Annotated[str, Form()],
+    title_en: Annotated[str | None, Form()] = None,
+    authors_en: Annotated[str | None, Form()] = None,
+    venue_en: Annotated[str | None, Form()] = None,
     link: Annotated[str | None, Form()] = None,
     related_project_id: Annotated[str | None, Form()] = None,
     csrf_token: Annotated[str, Form()] = "",
@@ -80,8 +89,11 @@ def update_publication(
 
     update_input = publication_service.parse_publication_update_input(
         title=title,
+        title_en=title_en,
         authors=authors,
+        authors_en=authors_en,
         venue=venue,
+        venue_en=venue_en,
         year=year,
         link=link,
         related_project_id=related_project_id,
