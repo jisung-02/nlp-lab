@@ -68,6 +68,35 @@ uv run python -c "from app.db.init_db import create_initial_admin; create_initia
 uv run uvicorn app.main:app --reload
 ```
 
+### 3.5 Poe task로 실행(권장)
+이 프로젝트는 `poethepoet` 기반 task를 제공합니다.
+
+```bash
+uv run poe serve
+```
+
+가상환경(`source .venv/bin/activate`)이 이미 활성화된 경우에는 `uv run`을 생략하고
+`poe <task>` 형태로 바로 실행해도 됩니다.
+
+```bash
+poe serve
+poe check
+```
+
+주요 task:
+
+| Task | 설명 | 명령 |
+| --- | --- | --- |
+| `serve` | 개발 서버 실행 | `uv run poe serve` |
+| `migrate` | 최신 마이그레이션 적용 | `uv run poe migrate` |
+| `migration` | 새 migration 생성 | `MSG="메시지" uv run poe migration` |
+| `init-admin` | 초기 관리자 생성 | `uv run poe init-admin` |
+| `lint` | Ruff lint | `uv run poe lint` |
+| `format` | Ruff format | `uv run poe format` |
+| `typecheck` | Ty 타입 검사 | `uv run poe typecheck` |
+| `test` | 테스트 실행 | `uv run poe test` |
+| `check` | lint + typecheck + test | `uv run poe check` |
+
 ---
 
 ## 4) 환경 변수
@@ -165,6 +194,11 @@ uv run uvicorn app.main:app --reload
 uv run ruff check .
 uv run ty check
 uv run pytest -q
+```
+
+동일 작업(Poe task):
+```bash
+uv run poe check
 ```
 
 모델 변경 시 추가:
