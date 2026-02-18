@@ -2,6 +2,11 @@
 {% block title %}{% if is_en %}Contact | NLP Lab{% else %}연락처 | NLP Lab{% endif %}{% endblock %}
 {% block body_class %}public-page public-contact{% endblock %}
 {% block content %}
+{% set map_query_ko = "%EA%B2%BD%ED%9D%AC%EB%8C%80%ED%95%99%EA%B5%90%20%EA%B5%AD%EC%A0%9C%EC%BA%A0%ED%8D%BC%EC%8A%A4%20%EC%A0%84%EC%9E%90%EC%A0%95%EB%B3%B4%EB%8C%80%ED%95%99%EA%B4%80" %}
+{% set map_query_en = "Kyung%20Hee%20University%20International%20Campus" %}
+{% set map_query = map_query_en if is_en else map_query_ko %}
+{% set map_lang = "en" if is_en else "ko" %}
+{% set map_center = "37.2397565,127.0832974" %}
 <section class="page-hero contact-hero">
   <div class="container contact-layout">
     <div class="contact-content-col">
@@ -32,13 +37,13 @@
       <iframe
         class="contact-map-frame"
         title="{{ 'Kyung Hee University International Campus Map' if is_en else '경희대학교 국제캠퍼스 지도' }}"
-        src="https://maps.google.com/maps?q=%EA%B2%BD%EA%B8%B0%EB%8F%84%20%EC%9A%A9%EC%9D%B8%EC%8B%9C%20%EA%B8%B0%ED%9D%A5%EA%B5%AC%20%EB%8D%95%EC%98%81%EB%8C%80%EB%A1%9C%201732%20%EA%B2%BD%ED%9D%AC%EB%8C%80%ED%95%99%EA%B5%90%20%EA%B5%AD%EC%A0%9C%EC%BA%A0%ED%8D%BC%EC%8A%A4%20%EC%A0%84%EC%9E%90%EC%A0%95%EB%B3%B4%EB%8C%80%ED%95%99%EA%B4%80%20436%ED%98%B8&hl=ko&z=17&output=embed"
+        src="{{ 'https://www.google.com/maps?output=embed&hl=' ~ map_lang ~ '&q=' ~ map_query ~ '&ll=' ~ map_center ~ '&z=18&t=m&iwloc=B' }}"
         loading="lazy"
         referrerpolicy="no-referrer-when-downgrade"
       ></iframe>
       <a
         class="text-link contact-map-link"
-        href="https://maps.google.com/?q=%EA%B2%BD%EA%B8%B0%EB%8F%84%20%EC%9A%A9%EC%9D%B8%EC%8B%9C%20%EA%B8%B0%ED%9D%A5%EA%B5%AC%20%EB%8D%95%EC%98%81%EB%8C%80%EB%A1%9C%201732%20%EA%B2%BD%ED%9D%AC%EB%8C%80%ED%95%99%EA%B5%90%20%EA%B5%AD%EC%A0%9C%EC%BA%A0%ED%8D%BC%EC%8A%A4%20%EC%A0%84%EC%9E%90%EC%A0%95%EB%B3%B4%EB%8C%80%ED%95%99%EA%B4%80%20436%ED%98%B8"
+        href="{{ 'https://www.google.com/maps?hl=' ~ map_lang ~ '&q=' ~ map_query ~ '&ll=' ~ map_center ~ '&z=18' }}"
         target="_blank"
         rel="noopener noreferrer"
       >
