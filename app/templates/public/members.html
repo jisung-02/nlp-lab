@@ -13,31 +13,25 @@
 </section>
 <section class="page-content">
   <div class="container">
-    <div class="page-panel">
-      <p>
-        {% if is_en %}Team members collaborate across language understanding, retrieval, and multimodal AI research.{%
-        else %}자연어 이해·검색·멀티모달 AI 연구를 함께 수행하는 연구실 구성원입니다.{% endif %}
-      </p>
-    </div>
     {% if members %}
-    <div class="member-grid large member-grid-toned">
+    <div class="list-grid members-list-grid">
       {% for member in members %}
-      <article class="member-card member-card-toned">
-        <div class="member-photo-wrap">
+      <article class="member-list-item">
+        <div class="member-list-photo-wrap">
           {% if member.photo_url %}
-          <img class="member-photo" src="{{ member.photo_url }}" alt="{{ member.name }}" loading="lazy" />
+          <img class="member-list-photo" src="{{ member.photo_url }}" alt="{{ member.name }}" loading="lazy" />
           {% else %}
           <img
-            class="member-photo"
+            class="member-list-photo"
             src="{{ url_for('static', path='images/default-profile.svg') }}"
             alt="{{ member.name }}"
             loading="lazy"
           />
           {% endif %}
         </div>
-        <div class="member-card-body">
+        <div class="member-list-body">
           <h3>{{ member.name }}</h3>
-          <p class="member-role-pill">{{ member.role.value | replace('_', ' ') | title }}</p>
+          <p class="meta">{{ member.role.value | replace('_', ' ') | title }}</p>
           <p class="member-email-line"><a href="mailto:{{ member.email }}">{{ member.email }}</a></p>
           {% if member.bio %}
           <p class="member-bio">{{ member.bio }}</p>
