@@ -13,10 +13,16 @@
 </section>
 <section class="page-content">
   <div class="container">
+    <div class="page-panel">
+      <p>
+        {% if is_en %}Team members collaborate across language understanding, retrieval, and multimodal AI research.{%
+        else %}자연어 이해·검색·멀티모달 AI 연구를 함께 수행하는 연구실 구성원입니다.{% endif %}
+      </p>
+    </div>
     {% if members %}
-    <div class="member-grid large">
+    <div class="member-grid large member-grid-toned">
       {% for member in members %}
-      <article class="member-card">
+      <article class="member-card member-card-toned">
         <div class="member-photo-wrap">
           {% if member.photo_url %}
           <img class="member-photo" src="{{ member.photo_url }}" alt="{{ member.name }}" loading="lazy" />
@@ -29,12 +35,12 @@
           />
           {% endif %}
         </div>
-        <div>
+        <div class="member-card-body">
           <h3>{{ member.name }}</h3>
-          <p class="meta">{{ member.role.value | replace('_', ' ') | title }}</p>
-          <p class="meta">{{ member.email }}</p>
+          <p class="member-role-pill">{{ member.role.value | replace('_', ' ') | title }}</p>
+          <p class="member-email-line"><a href="mailto:{{ member.email }}">{{ member.email }}</a></p>
           {% if member.bio %}
-          <p>{{ member.bio }}</p>
+          <p class="member-bio">{{ member.bio }}</p>
           {% endif %}
         </div>
       </article>

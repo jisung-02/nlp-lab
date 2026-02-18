@@ -13,33 +13,55 @@
   </div>
 </section>
 <section class="page-content">
-  <div class="container">
-    <div class="list-controls" role="group" aria-label="{{ 'Project status filter' if is_en else '프로젝트 상태 필터' }}">
-      <a
-        class="filter-chip {% if selected_status == 'all' %}is-active{% endif %}"
-        href="{{ '/projects?lang=' ~ lang }}"
+  <div class="container projects-shell">
+    <div class="projects-toolbar-card">
+      <p>
+        {% if is_en %}Browse ongoing and completed research projects by status.{% else %}진행 상태별로 프로젝트를 빠르게 확인할 수 있습니다.{% endif %}
+      </p>
+      <div
+        class="list-controls"
+        role="group"
+        aria-label="{{ 'Project status filter' if is_en else '프로젝트 상태 필터' }}"
       >
-        {{ "All" if is_en else "전체" }}
-      </a>
-      {% for project_status in project_statuses %}
-      <a
-        class="filter-chip {% if selected_status == project_status.value %}is-active{% endif %}"
-        href="{{ '/projects?status=' ~ project_status.value ~ '&lang=' ~ lang }}"
-      >
-        {% if project_status.value == "ongoing" %}
-        {{ "Ongoing" if is_en else "진행중" }}
-        {% else %}
-        {{ "Completed" if is_en else "완료" }}
-        {% endif %}
-      </a>
-      {% endfor %}
+        <a
+          class="filter-chip {% if selected_status == 'all' %}is-active{% endif %}"
+          href="{{ '/projects?lang=' ~ lang }}"
+        >
+          {{ "All" if is_en else "전체" }}
+        </a>
+        {% for project_status in project_statuses %}
+        <a
+          class="filter-chip {% if selected_status == project_status.value %}is-active{% endif %}"
+          href="{{ '/projects?status=' ~ project_status.value ~ '&lang=' ~ lang }}"
+        >
+          {% if project_status.value == "ongoing" %}
+          {{ "Ongoing" if is_en else "진행중" }}
+          {% else %}
+          {{ "Completed" if is_en else "완료" }}
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
     </div>
     {% if projects %}
-    <div class="list-grid">
+    <div class="list-grid projects-list-grid">
       {% for project in projects %}
-      <article class="list-card">
+      <article class="list-card project-card">
+        <p class="project-status-line">
+          {% if project.status.value == "ongoing" %}
+          {{ "Ongoing" if is_en else "진행중" }}
+          {% else %}
+          {{ "Completed" if is_en else "완료" }}
+          {% endif %}
+        </p>
         <h3><a href="{{ '/projects/' ~ project.slug ~ '?lang=' ~ lang }}">{{ project.title }}</a></h3>
-        <p>{{ project.summary }}</p>
+        <p class="project-summary-line">{{ project.summary }}</p>
+        <p class="project-date-line">
+          {{ project.start_date }}{% if project.end_date %} ~ {{ project.end_date }}{% endif %}
+        </p>
+        <a class="text-link project-link" href="{{ '/projects/' ~ project.slug ~ '?lang=' ~ lang }}"
+          >{{ "View Detail" if is_en else "상세 보기" }}</a
+        >
       </article>
       {% endfor %}
     </div>

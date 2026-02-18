@@ -2,24 +2,49 @@
 {% block title %}{% if is_en %}Contact | NLP Lab{% else %}연락처 | NLP Lab{% endif %}{% endblock %}
 {% block body_class %}public-page public-contact{% endblock %}
 {% block content %}
-<section class="page-hero">
-  <div class="container">
-    <p class="eyebrow">Contact</p>
-    <h1>{{ "Contact" if is_en else "연락처" }}</h1>
-  </div>
-</section>
-<section class="page-content">
-  <div class="container prose">
-    <p><strong>{{ "Address" if is_en else "주소" }}</strong>: {{ contact_address }}</p>
-    <p><strong>{{ "Email" if is_en else "이메일" }}</strong>: <a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p>
-    <p>
-      <a class="text-link" href="{{ contact_map_url }}" target="_blank" rel="noopener noreferrer"
-        >{{ "Open in Map" if is_en else "지도에서 보기" }}</a
+<section class="page-hero contact-hero">
+  <div class="container contact-layout">
+    <div class="contact-content-col">
+      <p class="eyebrow">Contact</p>
+      <h1>{{ "Contact" if is_en else "연락처" }}</h1>
+      <article class="contact-info-pane prose">
+        {% if is_en %}
+        <p>
+          <strong>Address</strong><br />
+          Electronic and Information Collage, Room #436, Kyung Hee University<br />
+          1732 Deogyeong-daero, Giheung-gu, Yongin-si, Gyeonggi-do, Republic of Korea
+        </p>
+        <p><strong>Postal Code</strong> : 17104</p>
+        <p><strong>Tel</strong> : <a href="tel:+82312015561">031-201-5561</a></p>
+        {% else %}
+        <p>
+          <strong>주소</strong><br />
+          경기도 용인시 기흥구 덕영대로 1732 (서천동)<br />
+          경희대학교 국제캠퍼스 전자정보대학관 436호
+        </p>
+        <p><strong>우편번호</strong> : 17104</p>
+        <p><strong>전화</strong> : <a href="tel:+82312015561">031-201-5561</a></p>
+        {% endif %}
+      </article>
+    </div>
+
+    <aside class="contact-map-card contact-map-pane">
+      <iframe
+        class="contact-map-frame"
+        title="{{ 'Kyung Hee University International Campus Map' if is_en else '경희대학교 국제캠퍼스 지도' }}"
+        src="https://maps.google.com/maps?q=%EA%B2%BD%EA%B8%B0%EB%8F%84%20%EC%9A%A9%EC%9D%B8%EC%8B%9C%20%EA%B8%B0%ED%9D%A5%EA%B5%AC%20%EB%8D%95%EC%98%81%EB%8C%80%EB%A1%9C%201732%20%EA%B2%BD%ED%9D%AC%EB%8C%80%ED%95%99%EA%B5%90%20%EA%B5%AD%EC%A0%9C%EC%BA%A0%ED%8D%BC%EC%8A%A4%20%EC%A0%84%EC%9E%90%EC%A0%95%EB%B3%B4%EB%8C%80%ED%95%99%EA%B4%80%20436%ED%98%B8&hl=ko&z=17&output=embed"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+      ></iframe>
+      <a
+        class="text-link contact-map-link"
+        href="https://maps.google.com/?q=%EA%B2%BD%EA%B8%B0%EB%8F%84%20%EC%9A%A9%EC%9D%B8%EC%8B%9C%20%EA%B8%B0%ED%9D%A5%EA%B5%AC%20%EB%8D%95%EC%98%81%EB%8C%80%EB%A1%9C%201732%20%EA%B2%BD%ED%9D%AC%EB%8C%80%ED%95%99%EA%B5%90%20%EA%B5%AD%EC%A0%9C%EC%BA%A0%ED%8D%BC%EC%8A%A4%20%EC%A0%84%EC%9E%90%EC%A0%95%EB%B3%B4%EB%8C%80%ED%95%99%EA%B4%80%20436%ED%98%B8"
+        target="_blank"
+        rel="noopener noreferrer"
       >
-    </p>
-    <p>
-      {{ "Please email us in advance before your visit." if is_en else "방문 전 이메일로 미리 연락 부탁드립니다." }}
-    </p>
+        {{ "Open in Map" if is_en else "지도에서 크게 보기" }}
+      </a>
+    </aside>
   </div>
 </section>
 {% endblock %}

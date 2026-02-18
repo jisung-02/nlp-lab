@@ -475,6 +475,154 @@
   transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
+.public-page .page-panel {
+  margin-bottom: 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.9) 0%, #fff 100%);
+}
+
+.public-page .page-panel p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.public-page .contact-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(420px, 1.08fr);
+  gap: 24px;
+  align-items: stretch;
+  max-width: 1120px;
+  margin: 0 auto;
+  min-height: clamp(420px, 44vw, 590px);
+}
+
+.public-page.public-contact .contact-hero {
+  padding: 72px 0 92px;
+}
+
+.public-page .contact-content-col {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding-left: 10px;
+}
+
+.public-page .contact-content-col h1 {
+  margin: 2px 0 8px;
+}
+
+.public-page .contact-info-pane {
+  align-self: start;
+  padding-left: 0;
+}
+
+.public-page .contact-info-pane p {
+  margin: 0 0 14px;
+  font-size: clamp(17px, 1.1vw, 20px);
+  line-height: 1.75;
+  color: var(--muted);
+}
+
+.public-page .contact-info-pane strong {
+  color: var(--ink);
+  font-size: 1.04em;
+}
+
+.public-page .contact-info-pane p:last-child {
+  margin-bottom: 0;
+}
+
+.public-page .contact-card,
+.public-page .contact-map-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.public-page .contact-card {
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.public-page .contact-group {
+  display: grid;
+  gap: 6px;
+}
+
+.public-page .contact-group h2 {
+  margin: 0;
+  font-size: 18px;
+  font-family: "Fraunces", serif;
+}
+
+.public-page .contact-group p {
+  margin: 0;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.public-page .contact-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.public-page .contact-meta div {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgb(255 255 255 / 0.6);
+}
+
+.public-page .contact-meta dt {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.public-page .contact-meta dd {
+  margin: 6px 0 0;
+  font-weight: 600;
+}
+
+.public-page .contact-map-card {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+.public-page .contact-map-card iframe,
+.public-page .contact-map-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  border: 0;
+  border-radius: 12px;
+}
+
+.public-page .contact-map-link {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.75);
+  background: rgb(26 26 26 / 0.45);
+  color: #fff;
+  padding: 6px 10px;
+  letter-spacing: 0.06em;
+}
+
 .public-page .is-visible {
   opacity: 1;
   transform: translateY(0);
@@ -493,6 +641,116 @@
   background: var(--surface);
 }
 
+.public-page .projects-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.public-page .projects-toolbar-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px 8px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.95) 0%, #fff 100%);
+}
+
+.public-page .projects-toolbar-card p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.public-page .projects-list-grid {
+  gap: 18px;
+}
+
+.public-page .project-card {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff 0%, rgb(250 251 253 / 0.95) 100%);
+}
+
+.public-page .project-card h3 {
+  margin: 0;
+}
+
+.public-page .project-card h3 a {
+  color: var(--ink);
+}
+
+.public-page .project-status-line {
+  margin: 0;
+  width: fit-content;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgb(122 30 43 / 0.07);
+}
+
+.public-page .project-summary-line {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.public-page .project-date-line {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.public-page .project-link {
+  margin-top: 4px;
+}
+
+.public-page .member-grid-toned {
+  gap: 18px;
+}
+
+.public-page .member-card-toned {
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fff 0%, rgb(250 251 253 / 0.95) 100%);
+}
+
+.public-page .member-card-body {
+  display: grid;
+  gap: 8px;
+}
+
+.public-page .member-card-toned h3 {
+  margin: 0;
+}
+
+.public-page .member-role-pill {
+  margin: 0;
+  width: fit-content;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgb(122 30 43 / 0.07);
+}
+
+.public-page .member-email-line {
+  margin: 0;
+  font-size: 13px;
+}
+
+.public-page .member-email-line a {
+  color: var(--muted);
+}
+
+.public-page .member-bio {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
 .public-page .project-detail-page {
   display: grid;
   gap: 28px;
@@ -501,6 +759,88 @@
 .public-page .project-overview {
   display: grid;
   gap: 14px;
+}
+
+.public-page .project-detail-shell {
+  gap: 18px;
+}
+
+.public-page .project-overview-card {
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fff 0%, rgb(250 251 253 / 0.95) 100%);
+}
+
+.public-page .project-overview-label {
+  margin: 0;
+  width: fit-content;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgb(122 30 43 / 0.07);
+}
+
+.public-page .project-overview-description {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.public-page .project-meta-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.public-page .project-meta-item {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgb(255 255 255 / 0.6);
+}
+
+.public-page .project-meta-item dt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.public-page .project-meta-item dd {
+  margin: 6px 0 0;
+  font-weight: 600;
+}
+
+.public-page .project-publications-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  background: var(--surface);
+}
+
+.public-page .project-publications-header h2 {
+  margin: 0 0 8px;
+}
+
+.public-page .project-publications-list {
+  gap: 12px;
+}
+
+.public-page .project-publication-item {
+  margin: 0;
+  padding: 14px 0;
+}
+
+.public-page .project-publication-item p {
+  margin: 0;
+}
+
+.public-page .project-publication-item h3 {
+  margin-top: 6px;
 }
 
 .public-page .empty-state {
@@ -528,8 +868,10 @@
 
 @media (max-width: 980px) {
   .public-page .hero-inner,
-  .public-page .section-grid {
+  .public-page .section-grid,
+  .public-page .contact-layout {
     grid-template-columns: 1fr;
+    min-height: 0;
   }
 
   .public-page .member-grid,
@@ -542,6 +884,39 @@
   .public-page .nav {
     flex-wrap: wrap;
     justify-content: flex-end;
+  }
+
+  .public-page .contact-map-card iframe {
+    height: clamp(260px, 46vw, 360px);
+  }
+
+  .public-page .contact-info-pane {
+    padding-left: 0;
+  }
+
+  .public-page .contact-content-col {
+    padding-left: 0;
+  }
+
+  .public-page .contact-map-card {
+    position: static;
+    padding: 12px 12px 14px;
+    height: auto;
+  }
+
+  .public-page .contact-map-card iframe,
+  .public-page .contact-map-frame {
+    position: static;
+    min-height: 0;
+  }
+
+  .public-page .contact-map-link {
+    position: static;
+    width: fit-content;
+    margin-top: 2px;
+    border-color: var(--line);
+    background: transparent;
+    color: var(--accent);
   }
 }
 
@@ -578,6 +953,19 @@
   .public-page .hero-slides {
     aspect-ratio: 4 / 3;
     min-height: 250px;
+  }
+
+  .public-page .project-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .public-page .contact-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .public-page .contact-map-card iframe,
+  .public-page .contact-map-frame {
+    height: clamp(240px, 64vw, 320px);
   }
 }
 

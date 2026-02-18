@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Admin Dashboard{% endblock %}
-{% block body_class %}admin-page{% endblock %}
+{% block body_class %}admin-page admin-dashboard{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}" />
 {% endblock %}
@@ -33,33 +33,56 @@
       </form>
     </div>
 
-    <div class="admin-page-header">
+    <section class="dashboard-hero card">
+      <p class="dashboard-hero-eyebrow">NLP Lab Admin</p>
       <div class="admin-page-title-wrap">
         <h1>관리자 대시보드</h1>
-        <p class="admin-page-subtitle">연구실 콘텐츠를 한눈에 점검하고 관리할 수 있습니다.</p>
+        <p class="dashboard-hero-lead">메인 페이지 톤에 맞춘 요약 화면에서 주요 콘텐츠 현황을 빠르게 확인할 수 있습니다.</p>
       </div>
-    </div>
+      <div class="dashboard-hero-actions">
+        <a href="/admin/members" class="btn">멤버 관리</a>
+        <a href="/admin/projects" class="btn btn-secondary">프로젝트 관리</a>
+        <a href="/admin/publications" class="btn btn-secondary">논문 관리</a>
+        <a href="/admin/posts" class="btn btn-secondary">게시글 관리</a>
+      </div>
+    </section>
 
-    <div class="stats-grid">
-      <article class="card stat-card">
-        <p class="admin-stat-label">멤버</p>
+    <div class="stats-grid dashboard-stats-grid">
+      <article class="card stat-card dashboard-stat-card">
+        <div class="dashboard-stat-header">
+          <p class="admin-stat-label">멤버</p>
+          <span class="dashboard-stat-pill">Members</span>
+        </div>
         <p class="admin-stat-value">{{ member_count }}</p>
         <p class="admin-stat-accessory">멤버 수: {{ member_count }}</p>
+        <a href="/admin/members" class="dashboard-stat-link">바로가기</a>
       </article>
-      <article class="card stat-card">
-        <p class="admin-stat-label">프로젝트</p>
+      <article class="card stat-card dashboard-stat-card">
+        <div class="dashboard-stat-header">
+          <p class="admin-stat-label">프로젝트</p>
+          <span class="dashboard-stat-pill">Projects</span>
+        </div>
         <p class="admin-stat-value">{{ project_count }}</p>
         <p class="admin-stat-accessory">프로젝트 수: {{ project_count }}</p>
+        <a href="/admin/projects" class="dashboard-stat-link">바로가기</a>
       </article>
-      <article class="card stat-card">
-        <p class="admin-stat-label">논문</p>
+      <article class="card stat-card dashboard-stat-card">
+        <div class="dashboard-stat-header">
+          <p class="admin-stat-label">논문</p>
+          <span class="dashboard-stat-pill">Papers</span>
+        </div>
         <p class="admin-stat-value">{{ publication_count }}</p>
         <p class="admin-stat-accessory">논문 수: {{ publication_count }}</p>
+        <a href="/admin/publications" class="dashboard-stat-link">바로가기</a>
       </article>
-      <article class="card stat-card">
-        <p class="admin-stat-label">게시글</p>
+      <article class="card stat-card dashboard-stat-card">
+        <div class="dashboard-stat-header">
+          <p class="admin-stat-label">게시글</p>
+          <span class="dashboard-stat-pill">Posts</span>
+        </div>
         <p class="admin-stat-value">{{ post_count }}</p>
         <p class="admin-stat-accessory">게시글 수: {{ post_count }}</p>
+        <a href="/admin/posts" class="dashboard-stat-link">바로가기</a>
       </article>
     </div>
   </section>
