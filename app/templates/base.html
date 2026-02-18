@@ -29,14 +29,12 @@
         <a class="brand site-brand" href="{{ '/?lang=' ~ current_lang }}">
           <span class="brand-copy">
             <span class="brand-primary-row">
-              {% if request.url.path == '/' or is_admin_page %}
               <img
                 class="brand-mark"
                 src="{{ url_for('static', path='images/khu_magnolia.svg') }}"
                 alt=""
                 aria-hidden="true"
               />
-              {% endif %}
               <span class="brand-top">NLP Lab</span>
             </span>
             <span class="brand-sub">Kyung Hee University</span>
