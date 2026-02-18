@@ -178,7 +178,4 @@ uv run alembic upgrade head
 ## 9) 저장소 위생
 
 커밋 금지:
-- `.omx/`
 - `.venv/`, 캐시, 로컬 DB, 임시 로그
-
-현재 `.gitignore`에 `.omx/`가 포함되어 있습니다.
