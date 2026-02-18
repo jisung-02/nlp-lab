@@ -78,9 +78,15 @@
     </div>
     <div class="section-body">
       {% if projects %}
-      <div class="feature-grid">
+      <div class="list-stack">
         {% for project in projects %}
-        <article class="feature-card">
+        <article class="stack-item">
+          <p class="meta">
+            {{ project.status.value | replace('_', ' ') | title }}
+            {% if project.start_date %}
+            · {{ project.start_date }}
+            {% endif %}
+          </p>
           <h3><a href="{{ '/projects/' ~ project.slug ~ '?lang=' ~ lang }}">{{ project.title }}</a></h3>
           <p>{{ project.summary }}</p>
         </article>
