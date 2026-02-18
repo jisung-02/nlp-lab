@@ -132,14 +132,40 @@ Admin CRUD (POST only):
 
 ---
 
-## 6) Codex 유지보수 스킬
-저장소 내 스킬:
-- `skills/nlp-lab-maintainer/SKILL.md`
-- `skills/nlp-lab-ui-maintainer/SKILL.md`
+## 6) Codex 유지보수 스킬 (스택 매칭 + 안전 기준)
 
-권장:
-- 기능/구조 변경: `nlp-lab-maintainer`
-- UI/스타일 변경: `nlp-lab-ui-maintainer`
+### 6.1 스킬 소스/검증 기준
+- 검색 범위:
+  - 저장소 로컬: `skills/`
+  - 시스템 기본: `~/.codex/skills/.system/*`
+  - 공식 큐레이션: `openai/skills` (`skills/.curated/*`)
+- 채택 기준:
+  1) 현재 스택(FastAPI SSR + 보안 + UI 검증)에 직접 도움이 될 것
+  2) 출처가 명확할 것(공식 curated 또는 저장소 내부 커스텀)
+  3) 불필요한 외부 배포/비밀키 연동이 없는 보수적 스킬 우선
+
+### 6.2 현재 사용 스킬
+- 로컬 커스텀
+  - `skills/nlp-lab-maintainer/SKILL.md`
+  - `skills/nlp-lab-ui-maintainer/SKILL.md`
+- 공식 curated(가져온 스킬, source: `openai/skills`)
+  - `skills/security-best-practices/SKILL.md`
+  - `skills/security-threat-model/SKILL.md`
+  - `skills/playwright/SKILL.md`
+  - `skills/screenshot/SKILL.md`
+
+### 6.3 스택 기준 권장 매핑
+- 기능/구조/DB/라우트 작업: `nlp-lab-maintainer`
+- UI/템플릿/CSS 작업: `nlp-lab-ui-maintainer`
+- FastAPI 보안 점검/하드닝: `security-best-practices`
+- 릴리즈 전 위협 모델링: `security-threat-model`
+- 브라우저 플로우 회귀 점검: `playwright` (+ 필요 시 `screenshot`)
+
+### 6.4 안전 운영 규칙
+- 기본은 `openai/skills` curated만 사용한다.
+- 실험(`.experimental`) 또는 제3자 저장소 스킬은 **명시적 승인 없이는 도입 금지**.
+- 스킬 추가 시 라이선스 파일 포함 여부를 확인하고 함께 버전 관리한다.
+- 스킬 스크립트 실행 전 반드시 내용 검토 후 사용한다(프로젝트 비밀정보/운영환경 보호).
 
 ---
 
@@ -147,4 +173,3 @@ Admin CRUD (POST only):
 - 커밋 전 반드시 quality gate 3종 통과
 - `.omx/` 산출물, 로컬 DB/캐시, 임시 로그는 커밋 금지
 - 작은 단위 커밋 권장 (`feat/...`, `fix/...`, `chore/...`)
-

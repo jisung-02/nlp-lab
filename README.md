@@ -139,10 +139,22 @@ uv run uvicorn app.main:app --reload
 ### 저장소 내 Codex skills
 - `skills/nlp-lab-maintainer/SKILL.md`
 - `skills/nlp-lab-ui-maintainer/SKILL.md`
+- `skills/security-best-practices/SKILL.md` (OpenAI curated)
+- `skills/security-threat-model/SKILL.md` (OpenAI curated)
+- `skills/playwright/SKILL.md` (OpenAI curated)
+- `skills/screenshot/SKILL.md` (OpenAI curated)
 
 ### 권장 사용
 - 기능/라우트/보안/DB 변경: `nlp-lab-maintainer`
 - 스타일/UI 조정: `nlp-lab-ui-maintainer`
+- FastAPI 보안 모범사례 점검: `security-best-practices`
+- 릴리즈 전 AppSec 위협 모델링: `security-threat-model`
+- UI 흐름 자동 점검: `playwright` (`screenshot`은 캡처 fallback)
+
+### 스킬 도입 정책
+- 기본 도입원: `openai/skills`의 `skills/.curated/*`
+- 실험/외부 저장소 스킬은 명시적 승인 시에만 추가
+- 스킬은 저장소 `skills/`에 벤더링하여 재현 가능하게 유지
 
 ---
 
@@ -170,4 +182,3 @@ uv run alembic upgrade head
 - `.venv/`, 캐시, 로컬 DB, 임시 로그
 
 현재 `.gitignore`에 `.omx/`가 포함되어 있습니다.
-
