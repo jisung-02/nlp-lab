@@ -72,10 +72,29 @@
 
 .public-page .brand {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: flex-start;
   font-family: "Fraunces", serif;
   letter-spacing: 0.4px;
+}
+
+.public-page .brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.public-page .brand-primary-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.public-page .brand-mark {
+  width: 28px;
+  height: 28px;
+  color: #b42318;
+  opacity: 1;
+  flex: 0 0 28px;
 }
 
 .public-page .brand-top {

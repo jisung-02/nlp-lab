@@ -200,11 +200,23 @@
       <h2>{{ "Contact" if is_en else "연락처" }}</h2>
     </div>
     <div class="section-body prose">
+      {% if is_en %}
       <p>
-        <strong>{{ "Email" if is_en else "이메일" }}</strong>:
-        <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>
+        <strong>Address</strong><br />
+        Electronic and Information Collage, Room #436, Kyung Hee University<br />
+        1732 Deogyeong-daero, Giheung-gu, Yongin-si, Gyeonggi-do, Republic of Korea
       </p>
-      <p><strong>{{ "Address" if is_en else "주소" }}</strong>: {{ contact_address }}</p>
+      <p><strong>Postal Code</strong> : 17104</p>
+      <p><strong>Tel</strong> : <a href="tel:+82312015561">031-201-5561</a></p>
+      {% else %}
+      <p>
+        <strong>주소</strong><br />
+        경기도 용인시 기흥구 덕영대로 1732 (서천동)<br />
+        경희대학교 국제캠퍼스 전자정보대학관 436호
+      </p>
+      <p><strong>우편번호</strong> : 17104</p>
+      <p><strong>전화</strong> : <a href="tel:+82312015561">031-201-5561</a></p>
+      {% endif %}
       <p>
         <a class="text-link" href="{{ '/contact?lang=' ~ lang }}"
           >{{ "View Contact Details" if is_en else "상세 연락처 보기" }}</a

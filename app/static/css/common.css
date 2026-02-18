@@ -104,14 +104,45 @@ a:focus-visible {
 
 .site-brand {
   display: inline-flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-start;
   color: var(--color-text);
 }
 
 .site-brand img {
   width: 84px;
   height: auto;
+}
+
+.site-brand .brand-mark {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+}
+
+.site-brand .brand-copy {
+  display: grid;
+  gap: 1px;
+}
+
+.site-brand .brand-primary-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.site-brand .brand-top {
+  display: block;
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.site-brand .brand-sub {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .site-brand__text {
