@@ -6,3 +6,4 @@ __pycache__/
 .DS_Store
 nlp_lab.db
 .env
+.omx/
