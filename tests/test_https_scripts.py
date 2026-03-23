@@ -8,6 +8,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 ENSURE_SCRIPT = ROOT_DIR / "scripts" / "ensure_https_cert.sh"
 SERVE_SCRIPT = ROOT_DIR / "scripts" / "serve_https.sh"
+BASH_BIN = str(Path("/bin/bash"))
 
 
 def _write_executable(path: Path, content: str) -> None:
@@ -17,7 +18,7 @@ def _write_executable(path: Path, content: str) -> None:
 
 def _run_script(script: Path, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["bash", str(script)],
+        [BASH_BIN, str(script)],
         cwd=ROOT_DIR,
         env=env,
         text=True,
@@ -194,8 +195,14 @@ def test_ensure_https_cert_reports_missing_privileges_for_ubuntu_bootstrap(tmp_p
     env = _build_env(tmp_path)
     os_release_path = tmp_path / "os-release"
     os_release_path.write_text('ID="ubuntu"\n', encoding="utf-8")
+    isolated_bin_dir = tmp_path / "isolated-bin"
+    isolated_bin_dir.mkdir()
+
+    env["PATH"] = str(isolated_bin_dir)
     env["OS_RELEASE_FILE"] = str(os_release_path)
     env["CERTBOT_BIN"] = "missing-certbot"
+    env["LOCAL_CERTBOT_LINK"] = str(tmp_path / "missing-local-certbot")
+    env["SNAP_CERTBOT_BIN"] = str(tmp_path / "missing-snap-certbot")
 
     result = _run_script(ENSURE_SCRIPT, env)
 
