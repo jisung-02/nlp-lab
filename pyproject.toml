@@ -40,6 +40,7 @@ env = { UV_CACHE_DIR = ".uv-cache" }
 
 [tool.poe.tasks]
 serve = "uvicorn app.main:app --reload"
+serve-https = "bash scripts/serve_https.sh"
 migrate = "alembic upgrade head"
 migration = "alembic revision --autogenerate -m ${MSG}"
 init-admin = "python -c \"from app.db.init_db import create_initial_admin; create_initial_admin()\""

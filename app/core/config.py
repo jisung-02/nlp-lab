@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     app_name: str = "NLP Lab Website"
     app_env: Literal["development", "test", "production"] = "development"
     app_debug: bool = False
+    app_host: str = "127.0.0.1"
+    app_port: int = 8000
+    app_domain: str | None = None
     secret_key: str = "change-me"
 
     database_url: str = "sqlite:///./nlp_lab.db"
@@ -21,6 +24,7 @@ class Settings(BaseSettings):
     contact_email: str = "lab@example.com"
     contact_address: str = "Seoul, Republic of Korea"
     contact_map_url: str = "https://maps.google.com"
+    tls_admin_email: str | None = None
 
     admin_username: str = "admin"
     admin_password: str = "change-me-now"

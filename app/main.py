@@ -74,4 +74,5 @@ def create_app() -> FastAPI:
     app.include_router(admin_post_router)
     return app
 
+
 app = create_app()
