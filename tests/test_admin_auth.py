@@ -12,6 +12,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 from starlette.types import Message, Receive, Scope, Send
 
+from app.core.config import get_settings
 from app.core.constants import MemberRole, ProjectStatus
 from app.core.security import hash_password
 from app.db.session import get_session
@@ -170,6 +171,23 @@ def test_login_page_sets_session_cookie_with_required_options(app_and_engine):
     assert "Max-Age=" in session_cookie
     assert "HttpOnly" in session_cookie
     assert "SameSite=lax" in session_cookie
+
+
+def test_login_page_sets_secure_session_cookie_in_production(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    get_settings.cache_clear()
+    app = create_app()
+
+    try:
+        status_code, headers, _ = _request(app, "GET", "/admin/login")
+    finally:
+        get_settings.cache_clear()
+
+    session_cookie = _header_value(headers, "set-cookie")
+
+    assert status_code == 200
+    assert session_cookie is not None
+    assert "Secure" in session_cookie
 
 
 def test_login_success_allows_dashboard_and_logout_blocks_later_access(app_and_engine):
