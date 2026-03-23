@@ -107,15 +107,17 @@ uv run poe serve-https
 - 먼저 `scripts/ensure_https_cert.sh`가 Let’s Encrypt 인증서를 확인합니다.
 - 인증서가 없거나 갱신 시점에 가까우면 `certbot certonly --standalone --keep-until-expiring`를 실행합니다.
 - 유효한 인증서가 있으면 재발급 없이 바로 `uvicorn` HTTPS 서버를 올립니다.
+- Ubuntu에서 `certbot`이 없으면 `snapd`, `certbot` snap, `/usr/local/bin/certbot` 링크를 자동 bootstrap 합니다.
 - 이 경로는 `APP_ENV=production`이 아니면 실패합니다.
 
 운영 전제:
 - DNS `A` 레코드: `APP_DOMAIN -> 서버 공인 IP`
 - 방화벽: `80/tcp`, `443/tcp` 허용
 - Let’s Encrypt HTTP-01 검증을 위해 `80/tcp`가 외부에서 접근 가능해야 함
-- `certbot`은 서버에 사전 설치되어 있어야 함
+- Ubuntu에서는 `certbot`이 없으면 자동 bootstrap 되지만, 그 외 환경은 사전 설치가 필요함
 - 인증서는 `/etc/letsencrypt/live/<APP_DOMAIN>/` 아래에 저장되며 repo에 포함하지 않음
 - `APP_ENV=production`일 때 admin 세션 쿠키는 `Secure`로 설정됨
+- Ubuntu 자동 설치는 root 또는 passwordless `sudo`가 가능할 때만 동작함
 
 주요 task:
 

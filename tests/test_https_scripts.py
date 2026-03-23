@@ -129,6 +129,79 @@ def test_ensure_https_cert_requests_certificate_when_missing(tmp_path: Path) -> 
     assert "--keep-until-expiring" in log_path.read_text(encoding="utf-8")
 
 
+def test_ensure_https_cert_bootstraps_certbot_on_ubuntu(tmp_path: Path) -> None:
+    env = _build_env(tmp_path)
+    cert_dir = Path(env["LETSENCRYPT_LIVE_DIR"]) / env["APP_DOMAIN"]
+    cert_path = cert_dir / "fullchain.pem"
+    key_path = cert_dir / "privkey.pem"
+    log_path = tmp_path / "bootstrap.log"
+    os_release_path = tmp_path / "os-release"
+    snap_certbot_bin = tmp_path / "snap" / "bin" / "certbot"
+    local_certbot_link = tmp_path / "usr" / "local" / "bin" / "certbot"
+
+    os_release_path.write_text('ID="ubuntu"\n', encoding="utf-8")
+    env.update(
+        {
+            "OS_RELEASE_FILE": str(os_release_path),
+            "SNAP_CERTBOT_BIN": str(snap_certbot_bin),
+            "LOCAL_CERTBOT_LINK": str(local_certbot_link),
+        }
+    )
+
+    _write_executable(
+        tmp_path / "bin" / "sudo",
+        """#!/usr/bin/env bash
+        if [ "$1" = "-n" ] && [ "$2" = "true" ]; then
+          exit 0
+        fi
+        "$@"
+        """,
+    )
+    _write_executable(
+        tmp_path / "bin" / "apt-get",
+        f"""#!/usr/bin/env bash
+        echo "apt-get $@" >> "{log_path}"
+        """,
+    )
+    _write_executable(
+        tmp_path / "bin" / "snap",
+        f"""#!/usr/bin/env bash
+        echo "snap $@" >> "{log_path}"
+        if [ "$1" = "install" ] && [ "$2" = "--classic" ] && [ "$3" = "certbot" ]; then
+          mkdir -p "{snap_certbot_bin.parent}"
+          cat > "{snap_certbot_bin}" <<'EOF'
+#!/usr/bin/env bash
+echo "certbot $@" >> "{log_path}"
+mkdir -p "{cert_dir}"
+printf 'fake-cert' > "{cert_path}"
+printf 'fake-key' > "{key_path}"
+EOF
+          chmod +x "{snap_certbot_bin}"
+        fi
+        """,
+    )
+
+    result = _run_script(ENSURE_SCRIPT, env)
+
+    assert result.returncode == 0
+    assert cert_path.read_text(encoding="utf-8") == "fake-cert"
+    bootstrap_log = log_path.read_text(encoding="utf-8")
+    assert "snap install --classic certbot" in bootstrap_log
+    assert "certbot certonly --standalone" in bootstrap_log
+
+
+def test_ensure_https_cert_reports_missing_privileges_for_ubuntu_bootstrap(tmp_path: Path) -> None:
+    env = _build_env(tmp_path)
+    os_release_path = tmp_path / "os-release"
+    os_release_path.write_text('ID="ubuntu"\n', encoding="utf-8")
+    env["OS_RELEASE_FILE"] = str(os_release_path)
+
+    result = _run_script(ENSURE_SCRIPT, env)
+
+    assert result.returncode != 0
+    assert "automatic Ubuntu installation requires root or passwordless sudo" in result.stderr
+
+
 def test_serve_https_requires_production_env(tmp_path: Path) -> None:
     env = _build_env(tmp_path)
     env["APP_ENV"] = "development"
