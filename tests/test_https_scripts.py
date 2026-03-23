@@ -195,6 +195,7 @@ def test_ensure_https_cert_reports_missing_privileges_for_ubuntu_bootstrap(tmp_p
     os_release_path = tmp_path / "os-release"
     os_release_path.write_text('ID="ubuntu"\n', encoding="utf-8")
     env["OS_RELEASE_FILE"] = str(os_release_path)
+    env["CERTBOT_BIN"] = "missing-certbot"
 
     result = _run_script(ENSURE_SCRIPT, env)
 

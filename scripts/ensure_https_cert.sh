@@ -124,6 +124,7 @@ install_certbot_for_ubuntu() {
   local ln_bin="${LN_BIN:-ln}"
   local local_certbot_link="${LOCAL_CERTBOT_LINK:-/usr/local/bin/certbot}"
   local snap_certbot_bin="${SNAP_CERTBOT_BIN:-/snap/bin/certbot}"
+  local installed_snapd=0
 
   if ! can_run_privileged; then
     echo "Certbot is missing, but automatic Ubuntu installation requires root or passwordless sudo." >&2
@@ -136,9 +137,10 @@ install_certbot_for_ubuntu() {
     require_command "$apt_get_bin"
     run_privileged "$apt_get_bin" update
     run_privileged "$apt_get_bin" install -y snapd
+    installed_snapd=1
   fi
 
-  if command -v systemctl >/dev/null 2>&1; then
+  if [ "$installed_snapd" -eq 1 ] && command -v systemctl >/dev/null 2>&1; then
     run_privileged systemctl enable --now snapd.socket
   fi
 
