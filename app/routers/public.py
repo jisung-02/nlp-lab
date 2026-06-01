@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 from xml.sax.saxutils import escape as xml_escape
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import PlainTextResponse, Response
+from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, col, select
 
@@ -229,6 +229,14 @@ def robots_txt(request: Request):
         ]
     )
     return PlainTextResponse(content)
+
+
+@router.api_route("/favicon.ico", methods=["GET", "HEAD"], include_in_schema=False)
+def favicon(request: Request):
+    return RedirectResponse(
+        url=str(request.url_for("static", path="images/favicon.ico")),
+        status_code=307,
+    )
 
 
 @router.get("/sitemap.xml", include_in_schema=False)

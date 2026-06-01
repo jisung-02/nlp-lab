@@ -892,6 +892,22 @@ def test_robots_txt_advertises_sitemap_and_blocks_admin(monkeypatch: pytest.Monk
     assert "Sitemap: https://lab.example.test/sitemap.xml" in body
 
 
+def test_root_favicon_redirects_to_static_asset_for_get_and_head(app_and_engine):
+    app, _ = app_and_engine
+
+    status_code, headers, _ = _request(app, "GET", "/favicon.ico")
+    head_status_code, head_headers, _ = _request(app, "HEAD", "/favicon.ico")
+
+    location = _header_value(headers, "location")
+    head_location = _header_value(head_headers, "location")
+    assert status_code == 307
+    assert location is not None
+    assert location.endswith("/static/images/favicon.ico")
+    assert head_status_code == 307
+    assert head_location is not None
+    assert head_location.endswith("/static/images/favicon.ico")
+
+
 def test_sitemap_xml_lists_public_language_urls_and_project_details(
     monkeypatch: pytest.MonkeyPatch,
 ):
