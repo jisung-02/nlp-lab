@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
@@ -7,8 +8,11 @@ from fastapi import FastAPI, HTTPException
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 from starlette.requests import Request
+from starlette.types import Message, Receive, Scope, Send
 
+from app.core.config import get_settings
 from app.core.constants import HOME_HERO_IMAGE_POST_SLUG, MemberRole, ProjectStatus
+from app.db.session import get_session
 from app.main import create_app
 from app.models.member import Member
 from app.models.post import Post
@@ -46,6 +50,76 @@ def _make_request(app: FastAPI, path: str, query_string: str = "") -> Request:
     return Request(scope)
 
 
+def _header_value(headers: list[tuple[str, str]], name: str) -> str | None:
+    for key, value in headers:
+        if key.lower() == name.lower():
+            return value
+    return None
+
+
+def _request(app: FastAPI, method: str, path: str) -> tuple[int, list[tuple[str, str]], str]:
+    route_path, _, query_string = path.partition("?")
+    headers: list[tuple[bytes, bytes]] = [
+        (b"host", b"testserver"),
+        (b"content-length", b"0"),
+    ]
+    scope: Scope = {
+        "type": "http",
+        "asgi": {"version": "3.0", "spec_version": "2.3"},
+        "http_version": "1.1",
+        "method": method.upper(),
+        "scheme": "http",
+        "path": route_path,
+        "raw_path": route_path.encode("utf-8"),
+        "query_string": query_string.encode("utf-8"),
+        "headers": headers,
+        "client": ("testclient", 50000),
+        "server": ("testserver", 80),
+        "root_path": "",
+    }
+
+    sent = False
+
+    async def receive() -> Message:
+        nonlocal sent
+        if sent:
+            return {"type": "http.request", "body": b"", "more_body": False}
+        sent = True
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    messages: list[Message] = []
+
+    async def send(message: Message) -> None:
+        messages.append(message)
+
+    receive_fn: Receive = receive
+    send_fn: Send = send
+    asyncio.run(app(scope, receive_fn, send_fn))
+
+    status_code = 500
+    response_headers: list[tuple[str, str]] = []
+    body = b""
+    for message in messages:
+        if message["type"] == "http.response.start":
+            status_code = message["status"]
+            response_headers = [
+                (key.decode("latin-1"), value.decode("latin-1"))
+                for key, value in message.get("headers", [])
+            ]
+        if message["type"] == "http.response.body":
+            body += message.get("body", b"")
+
+    return status_code, response_headers, body.decode("utf-8", errors="ignore")
+
+
+def _use_test_engine(app: FastAPI, engine) -> None:
+    def override_get_session():
+        with Session(engine) as session:
+            yield session
+
+    app.dependency_overrides[get_session] = override_get_session
+
+
 @pytest.fixture
 def app_and_engine():
     engine = create_engine(
@@ -55,6 +129,19 @@ def app_and_engine():
     )
     SQLModel.metadata.create_all(engine)
     app = create_app()
+    _use_test_engine(app, engine)
+    return app, engine
+
+
+def _make_test_client_app():
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    SQLModel.metadata.create_all(engine)
+    app = create_app()
+    _use_test_engine(app, engine)
     return app, engine
 
 
@@ -753,3 +840,94 @@ def test_publications_page_renders_year_filter_links(app_and_engine):
     assert "/publications?lang=en" in body
     assert "/publications?year=2025&amp;lang=en" in body
     assert "/publications?year=2026&amp;lang=en" in body
+
+
+def test_public_pages_render_search_metadata_for_configured_domain(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("APP_DOMAIN", "lab.example.test")
+    monkeypatch.setenv("GOOGLE_SITE_VERIFICATION", "verify-token")
+    get_settings.cache_clear()
+    app, _ = _make_test_client_app()
+
+    try:
+        status_code, _, body = _request(app, "GET", "/?lang=en")
+    finally:
+        get_settings.cache_clear()
+
+    assert status_code == 200
+    assert (
+        '<meta name="description" content="Kyung Hee University NLP Lab researches '
+        "natural language processing"
+    ) in body
+    assert '<meta name="robots" content="index,follow" />' in body
+    assert '<link rel="canonical" href="https://lab.example.test/?lang=en" />' in body
+    assert (
+        '<link rel="alternate" hreflang="ko" href="https://lab.example.test/?lang=kr" />'
+        in body
+    )
+    assert (
+        '<link rel="alternate" hreflang="en" href="https://lab.example.test/?lang=en" />'
+        in body
+    )
+    assert '<meta name="google-site-verification" content="verify-token" />' in body
+
+
+def test_robots_txt_advertises_sitemap_and_blocks_admin(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("APP_DOMAIN", "lab.example.test")
+    get_settings.cache_clear()
+    app, _ = _make_test_client_app()
+
+    try:
+        status_code, headers, body = _request(app, "GET", "/robots.txt")
+    finally:
+        get_settings.cache_clear()
+
+    content_type = _header_value(headers, "content-type")
+    assert status_code == 200
+    assert content_type is not None
+    assert content_type.startswith("text/plain")
+    assert "User-agent: *" in body
+    assert "Disallow: /admin" in body
+    assert "Sitemap: https://lab.example.test/sitemap.xml" in body
+
+
+def test_sitemap_xml_lists_public_language_urls_and_project_details(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("APP_DOMAIN", "lab.example.test")
+    get_settings.cache_clear()
+    app, engine = _make_test_client_app()
+    with Session(engine) as session:
+        session.add(
+            Project(
+                title="project-one",
+                slug="project-one",
+                summary="summary one",
+                description="description one",
+                status=ProjectStatus.ONGOING,
+                start_date=date(2025, 1, 1),
+                end_date=None,
+                created_at=_dt(1),
+                updated_at=_dt(2),
+            )
+        )
+        session.commit()
+
+    try:
+        status_code, headers, body = _request(app, "GET", "/sitemap.xml")
+    finally:
+        get_settings.cache_clear()
+
+    content_type = _header_value(headers, "content-type")
+    assert status_code == 200
+    assert content_type is not None
+    assert content_type.startswith("application/xml")
+    assert body.startswith('<?xml version="1.0" encoding="UTF-8"?>')
+    assert "<loc>https://lab.example.test/?lang=kr</loc>" in body
+    assert "<loc>https://lab.example.test/?lang=en</loc>" in body
+    assert "<loc>https://lab.example.test/members?lang=kr</loc>" in body
+    assert "<loc>https://lab.example.test/projects?lang=en</loc>" in body
+    assert "<loc>https://lab.example.test/projects/project-one?lang=kr</loc>" in body
+    assert "<loc>https://lab.example.test/projects/project-one?lang=en</loc>" in body
+    assert "/admin" not in body

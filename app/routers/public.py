@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated, cast
 from urllib.parse import urlencode
+from xml.sax.saxutils import escape as xml_escape
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import PlainTextResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, col, select
 
@@ -19,6 +22,41 @@ from app.models.publication import Publication
 from app.services import post_service
 
 router = APIRouter()
+
+PUBLIC_SEO_COPY = {
+    "/": {
+        "kr": (
+            "경희대학교 NLP 연구실은 자연어처리, 언어 이해, 질의응답, 대화 시스템, "
+            "정보검색을 연구합니다."
+        ),
+        "en": (
+            "Kyung Hee University NLP Lab researches natural language processing, "
+            "language understanding, question answering, dialogue systems, "
+            "and information retrieval."
+        ),
+    },
+    "/members": {
+        "kr": "경희대학교 NLP 연구실 구성원과 연구진을 소개합니다.",
+        "en": "Meet the members and researchers of Kyung Hee University NLP Lab.",
+    },
+    "/projects": {
+        "kr": "경희대학교 NLP 연구실의 자연어처리 연구 분야와 프로젝트를 소개합니다.",
+        "en": (
+            "Explore natural language processing research areas and projects "
+            "at Kyung Hee University NLP Lab."
+        ),
+    },
+    "/publications": {
+        "kr": "경희대학교 NLP 연구실의 논문과 연구 성과를 확인하세요.",
+        "en": "Browse publications and research outputs from Kyung Hee University NLP Lab.",
+    },
+    "/contact": {
+        "kr": "경희대학교 NLP 연구실 위치, 연락처, 방문 정보를 안내합니다.",
+        "en": "Find contact, location, and visit information for Kyung Hee University NLP Lab.",
+    },
+}
+
+PUBLIC_STATIC_SITEMAP_PATHS = ("/", "/members", "/projects", "/publications", "/contact")
 
 
 @router.get("/")
@@ -178,6 +216,58 @@ def contact_page(request: Request):
     )
 
 
+@router.get("/robots.txt", include_in_schema=False)
+def robots_txt(request: Request):
+    content = "\n".join(
+        [
+            "User-agent: *",
+            "Allow: /",
+            "Disallow: /admin",
+            "",
+            f"Sitemap: {_absolute_public_url(request, '/sitemap.xml')}",
+            "",
+        ]
+    )
+    return PlainTextResponse(content)
+
+
+@router.get("/sitemap.xml", include_in_schema=False)
+def sitemap_xml(
+    request: Request,
+    session: Annotated[Session, Depends(get_session)],
+):
+    projects = session.exec(select(Project).order_by(col(Project.updated_at).desc())).all()
+    sitemap_entries: list[tuple[str, str | None]] = []
+
+    for path in PUBLIC_STATIC_SITEMAP_PATHS:
+        for lang in ("kr", "en"):
+            sitemap_entries.append((_localized_path(path, lang), None))
+
+    for project in projects:
+        for lang in ("kr", "en"):
+            sitemap_entries.append(
+                (
+                    _localized_path(f"/projects/{project.slug}", lang),
+                    _format_sitemap_lastmod(project.updated_at),
+                )
+            )
+
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    for path, lastmod in sitemap_entries:
+        lines.append("  <url>")
+        lines.append(f"    <loc>{xml_escape(_absolute_public_url(request, path))}</loc>")
+        if lastmod:
+            lines.append(f"    <lastmod>{lastmod}</lastmod>")
+        lines.append("  </url>")
+    lines.append("</urlset>")
+    lines.append("")
+
+    return Response("\n".join(lines), media_type="application/xml; charset=utf-8")
+
+
 SUPPORTED_PUBLIC_LANGS = {"kr", "en"}
 DEFAULT_PUBLIC_LANG = "kr"
 PUBLIC_LANG_COOKIE_NAME = "nlp_lang"
@@ -201,6 +291,7 @@ def _render_public_template(
 
 def _public_context(request: Request, **extra_context: object) -> dict[str, object]:
     lang = _resolve_public_lang(request)
+    settings = get_settings()
     context: dict[str, object] = {
         "request": request,
         "lang": lang,
@@ -209,6 +300,19 @@ def _public_context(request: Request, **extra_context: object) -> dict[str, obje
         "lang_en_url": _replace_lang_in_query(request, "en"),
     }
     context.update(extra_context)
+    context.update(
+        {
+            "meta_description": _meta_description_for_context(request, context),
+            "meta_robots": "index,follow",
+            "canonical_url": _absolute_public_url(request, _replace_lang_in_query(request, lang)),
+            "alternate_lang_urls": {
+                "ko": _absolute_public_url(request, _replace_lang_in_query(request, "kr")),
+                "en": _absolute_public_url(request, _replace_lang_in_query(request, "en")),
+                "x-default": _absolute_public_url(request, _replace_lang_in_query(request, "kr")),
+            },
+            "google_site_verification": settings.google_site_verification,
+        }
+    )
     return context
 
 
@@ -231,3 +335,52 @@ def _replace_lang_in_query(request: Request, target_lang: str) -> str:
     if not encoded_query:
         return request.url.path
     return f"{request.url.path}?{encoded_query}"
+
+
+def _public_base_url(request: Request) -> str:
+    settings = get_settings()
+    app_domain = (settings.app_domain or "").strip().rstrip("/")
+    if app_domain:
+        if app_domain.startswith(("http://", "https://")):
+            return app_domain
+        return f"https://{app_domain}"
+    return str(request.base_url).rstrip("/")
+
+
+def _absolute_public_url(request: Request, path: str) -> str:
+    normalized_path = path if path.startswith("/") else f"/{path}"
+    return f"{_public_base_url(request)}{normalized_path}"
+
+
+def _localized_path(path: str, lang: str) -> str:
+    separator = "&" if "?" in path else "?"
+    return f"{path}{separator}lang={lang}"
+
+
+def _format_sitemap_lastmod(value: datetime | None) -> str | None:
+    if value is None:
+        return None
+    return value.date().isoformat()
+
+
+def _meta_description_for_context(request: Request, context: dict[str, object]) -> str:
+    lang = cast(str, context["lang"])
+    path = request.url.path
+    if path.startswith("/projects/"):
+        project = context.get("project")
+        if isinstance(project, Project):
+            summary = (project.summary_en if lang == "en" else project.summary) or (
+                project.summary if lang == "en" else project.summary_en
+            )
+            if summary:
+                return _truncate_meta_description(summary)
+
+    page_copy = PUBLIC_SEO_COPY.get(path, PUBLIC_SEO_COPY["/"])
+    return page_copy.get(lang, page_copy[DEFAULT_PUBLIC_LANG])
+
+
+def _truncate_meta_description(value: str, limit: int = 160) -> str:
+    normalized = " ".join(value.split())
+    if len(normalized) <= limit:
+        return normalized
+    return f"{normalized[: limit - 3].rstrip()}..."

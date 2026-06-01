@@ -7,6 +7,28 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {% if meta_description is defined and meta_description %}
+    <meta name="description" content="{{ meta_description }}" />
+    {% endif %}
+    <meta name="robots" content="{{ meta_robots | default('noindex,nofollow' if request.url.path.startswith('/admin') else 'index,follow') }}" />
+    {% if canonical_url is defined and canonical_url %}
+    <link rel="canonical" href="{{ canonical_url }}" />
+    <meta property="og:url" content="{{ canonical_url }}" />
+    {% endif %}
+    {% if alternate_lang_urls is defined and alternate_lang_urls %}
+    {% for hreflang, href in alternate_lang_urls.items() %}
+    <link rel="alternate" hreflang="{{ hreflang }}" href="{{ href }}" />
+    {% endfor %}
+    {% endif %}
+    {% if google_site_verification is defined and google_site_verification %}
+    <meta name="google-site-verification" content="{{ google_site_verification }}" />
+    {% endif %}
+    <meta property="og:site_name" content="NLP Lab" />
+    <meta property="og:type" content="website" />
+    {% if meta_description is defined and meta_description %}
+    <meta property="og:description" content="{{ meta_description }}" />
+    {% endif %}
+    <meta name="twitter:card" content="summary" />
     <title>{% block title %}NLP Lab{% endblock %}</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='images/favicon.ico') }}" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

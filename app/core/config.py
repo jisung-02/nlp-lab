@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     contact_address: str = "Seoul, Republic of Korea"
     contact_map_url: str = "https://maps.google.com"
     tls_admin_email: str | None = None
+    google_site_verification: str | None = None
 
     admin_username: str = "admin"
     admin_password: str = "change-me-now"

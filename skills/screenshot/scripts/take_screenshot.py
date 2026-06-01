@@ -552,7 +552,7 @@ def main() -> None:
         if window_ids:
             suffixes = [f"w{wid}" for wid in window_ids]
             paths = multi_output_paths(output, suffixes)
-            for wid, path in zip(window_ids, paths):
+            for wid, path in zip(window_ids, paths, strict=True):
                 capture_macos(args, path, window_id=wid)
             for path in paths:
                 print(path)
@@ -560,7 +560,7 @@ def main() -> None:
         if len(display_ids) > 1:
             suffixes = [f"d{did}" for did in display_ids]
             paths = multi_output_paths(output, suffixes)
-            for did, path in zip(display_ids, paths):
+            for did, path in zip(display_ids, paths, strict=True):
                 capture_macos(args, path, display=did)
             for path in paths:
                 print(path)
