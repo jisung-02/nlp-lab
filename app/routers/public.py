@@ -26,8 +26,8 @@ router = APIRouter()
 PUBLIC_SEO_COPY = {
     "/": {
         "kr": (
-            "경희대학교 NLP 연구실은 자연어처리, 언어 이해, 질의응답, 대화 시스템, "
-            "정보검색을 연구합니다."
+            "경희대학교 컴퓨터공학부 박성배 교수의 NLP 연구실입니다. "
+            "자연어처리, 정보검색, 질의응답, 대화 시스템, 텍스트 마이닝을 연구합니다."
         ),
         "en": (
             "Kyung Hee University NLP Lab researches natural language processing, "
@@ -53,6 +53,29 @@ PUBLIC_SEO_COPY = {
     "/contact": {
         "kr": "경희대학교 NLP 연구실 위치, 연락처, 방문 정보를 안내합니다.",
         "en": "Find contact, location, and visit information for Kyung Hee University NLP Lab.",
+    },
+}
+
+PUBLIC_SEO_TITLES = {
+    "/": {
+        "kr": "경희대 NLP 연구실 | 경희대학교 자연어처리 연구실",
+        "en": "Kyung Hee NLP Lab | Natural Language Processing Lab",
+    },
+    "/members": {
+        "kr": "구성원 | NLP Lab",
+        "en": "Members | NLP Lab",
+    },
+    "/projects": {
+        "kr": "연구 분야 | NLP Lab",
+        "en": "Research Areas | NLP Lab",
+    },
+    "/publications": {
+        "kr": "연구성과 | NLP Lab",
+        "en": "Publications | NLP Lab",
+    },
+    "/contact": {
+        "kr": "연락처 | NLP Lab",
+        "en": "Contact | NLP Lab",
     },
 }
 
@@ -343,6 +366,7 @@ def _public_context(request: Request, **extra_context: object) -> dict[str, obje
     context.update(
         {
             "meta_description": _meta_description_for_context(request, context),
+            "meta_title": _meta_title_for_context(request, context),
             "meta_robots": "index,follow",
             "canonical_url": _absolute_public_url(request, _replace_lang_in_query(request, lang)),
             "alternate_lang_urls": {
@@ -417,6 +441,22 @@ def _meta_description_for_context(request: Request, context: dict[str, object]) 
 
     page_copy = PUBLIC_SEO_COPY.get(path, PUBLIC_SEO_COPY["/"])
     return page_copy.get(lang, page_copy[DEFAULT_PUBLIC_LANG])
+
+
+def _meta_title_for_context(request: Request, context: dict[str, object]) -> str:
+    lang = cast(str, context["lang"])
+    path = request.url.path
+    if path.startswith("/projects/"):
+        project = context.get("project")
+        if isinstance(project, Project):
+            title = (project.title_en if lang == "en" else project.title) or (
+                project.title if lang == "en" else project.title_en
+            )
+            if title:
+                return f"{title} | NLP Lab"
+
+    page_title = PUBLIC_SEO_TITLES.get(path, PUBLIC_SEO_TITLES["/"])
+    return page_title.get(lang, page_title[DEFAULT_PUBLIC_LANG])
 
 
 def _truncate_meta_description(value: str, limit: int = 160) -> str:

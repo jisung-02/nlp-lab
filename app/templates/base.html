@@ -25,11 +25,14 @@
     {% endif %}
     <meta property="og:site_name" content="NLP Lab" />
     <meta property="og:type" content="website" />
+    {% if meta_title is defined and meta_title %}
+    <meta property="og:title" content="{{ meta_title }}" />
+    {% endif %}
     {% if meta_description is defined and meta_description %}
     <meta property="og:description" content="{{ meta_description }}" />
     {% endif %}
     <meta name="twitter:card" content="summary" />
-    <title>{% block title %}NLP Lab{% endblock %}</title>
+    <title>{% block title %}{{ meta_title | default('NLP Lab') }}{% endblock %}</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='images/favicon.ico') }}" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

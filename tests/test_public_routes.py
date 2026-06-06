@@ -873,6 +873,23 @@ def test_public_pages_render_search_metadata_for_configured_domain(
     assert '<meta name="google-site-verification" content="verify-token" />' in body
 
 
+def test_home_page_targets_korean_search_metadata():
+    app, _ = _make_test_client_app()
+
+    status_code, _, body = _request(app, "GET", "/?lang=kr")
+
+    expected_title = "경희대 NLP 연구실 | 경희대학교 자연어처리 연구실"
+    expected_description = (
+        "경희대학교 컴퓨터공학부 박성배 교수의 NLP 연구실입니다. "
+        "자연어처리, 정보검색, 질의응답, 대화 시스템, 텍스트 마이닝을 연구합니다."
+    )
+    assert status_code == 200
+    assert f"<title>{expected_title}</title>" in body
+    assert f'<meta name="description" content="{expected_description}" />' in body
+    assert f'<meta property="og:title" content="{expected_title}" />' in body
+    assert f'<meta property="og:description" content="{expected_description}" />' in body
+
+
 @pytest.mark.parametrize(
     ("legacy_path", "expected_location"),
     [
