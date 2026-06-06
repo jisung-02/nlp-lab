@@ -873,6 +873,42 @@ def test_public_pages_render_search_metadata_for_configured_domain(
     assert '<meta name="google-site-verification" content="verify-token" />' in body
 
 
+@pytest.mark.parametrize(
+    ("legacy_path", "expected_location"),
+    [
+        ("/index.html", "/"),
+        ("/home", "/"),
+        ("/people", "/members"),
+        ("/Contact", "/contact"),
+        ("/Members", "/members"),
+        ("/Research_Overview", "/projects"),
+        ("/research_1", "/projects"),
+        ("/research_2", "/projects"),
+        ("/papers_with_code", "/publications"),
+        ("/Domestic_Journal", "/publications?category=domestic_journal"),
+        ("/International_Journal", "/publications?category=international_journal"),
+        ("/Domestic_Conference", "/publications?category=domestic_conference"),
+        ("/International_Conference", "/publications?category=international_conference"),
+    ],
+)
+def test_legacy_public_urls_redirect_permanently(
+    app_and_engine,
+    legacy_path: str,
+    expected_location: str,
+):
+    app, _ = app_and_engine
+
+    status_code, headers, body = _request(app, "GET", legacy_path)
+    head_status_code, head_headers, head_body = _request(app, "HEAD", legacy_path)
+
+    assert status_code == 301
+    assert _header_value(headers, "location") == expected_location
+    assert body == ""
+    assert head_status_code == 301
+    assert _header_value(head_headers, "location") == expected_location
+    assert head_body == ""
+
+
 def test_robots_txt_advertises_sitemap_and_blocks_admin(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("APP_DOMAIN", "lab.example.test")
     get_settings.cache_clear()

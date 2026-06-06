@@ -58,6 +58,38 @@ PUBLIC_SEO_COPY = {
 
 PUBLIC_STATIC_SITEMAP_PATHS = ("/", "/members", "/projects", "/publications", "/contact")
 
+LEGACY_PUBLIC_REDIRECTS = {
+    "/index.html": "/",
+    "/home": "/",
+    "/people": "/members",
+    "/Contact": "/contact",
+    "/Members": "/members",
+    "/Research_Overview": "/projects",
+    "/research_1": "/projects",
+    "/research_2": "/projects",
+    "/papers_with_code": "/publications",
+    "/Domestic_Journal": "/publications?category=domestic_journal",
+    "/International_Journal": "/publications?category=international_journal",
+    "/Domestic_Conference": "/publications?category=domestic_conference",
+    "/International_Conference": "/publications?category=international_conference",
+}
+
+
+def _make_legacy_redirect_handler(target_url: str):
+    def legacy_redirect():
+        return RedirectResponse(url=target_url, status_code=301)
+
+    return legacy_redirect
+
+
+for legacy_path, target_url in LEGACY_PUBLIC_REDIRECTS.items():
+    router.add_api_route(
+        legacy_path,
+        _make_legacy_redirect_handler(target_url),
+        methods=["GET", "HEAD"],
+        include_in_schema=False,
+    )
+
 
 @router.get("/")
 def home(
