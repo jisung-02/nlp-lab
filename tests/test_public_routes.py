@@ -1184,3 +1184,15 @@ def test_project_detail_renders_research_project_and_breadcrumb_jsonld(app_and_e
     assert status_code == 200
     assert '"@type": "ResearchProject"' in body
     assert '"@type": "BreadcrumbList"' in body
+
+
+def test_google_site_verification_file_served_at_root(app_and_engine):
+    app, _ = app_and_engine
+
+    status_code, headers, body = _request(app, "GET", "/googlef810f48826f17ab4.html")
+
+    content_type = _header_value(headers, "content-type")
+    assert status_code == 200
+    assert content_type is not None
+    assert content_type.startswith("text/html")
+    assert body == "google-site-verification: googlef810f48826f17ab4.html"

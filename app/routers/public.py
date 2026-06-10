@@ -291,6 +291,20 @@ AI_CRAWLER_USER_AGENTS = (
 )
 
 
+GOOGLE_SITE_VERIFICATION_FILENAME = "googlef810f48826f17ab4.html"
+GOOGLE_SITE_VERIFICATION_FILE_CONTENT = (
+    f"google-site-verification: {GOOGLE_SITE_VERIFICATION_FILENAME}"
+)
+
+
+@router.get(f"/{GOOGLE_SITE_VERIFICATION_FILENAME}", include_in_schema=False)
+def google_site_verification_file():
+    return PlainTextResponse(
+        GOOGLE_SITE_VERIFICATION_FILE_CONTENT,
+        media_type="text/html; charset=utf-8",
+    )
+
+
 @router.get("/robots.txt", include_in_schema=False)
 def robots_txt(request: Request):
     lines = [
