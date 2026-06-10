@@ -10,6 +10,9 @@
     {% if meta_description is defined and meta_description %}
     <meta name="description" content="{{ meta_description }}" />
     {% endif %}
+    {% if meta_keywords is defined and meta_keywords %}
+    <meta name="keywords" content="{{ meta_keywords }}" />
+    {% endif %}
     <meta name="robots" content="{{ meta_robots | default('noindex,nofollow' if request.url.path.startswith('/admin') else 'index,follow') }}" />
     {% if canonical_url is defined and canonical_url %}
     <link rel="canonical" href="{{ canonical_url }}" />
@@ -23,15 +26,30 @@
     {% if google_site_verification is defined and google_site_verification %}
     <meta name="google-site-verification" content="{{ google_site_verification }}" />
     {% endif %}
+    {% if naver_site_verification is defined and naver_site_verification %}
+    <meta name="naver-site-verification" content="{{ naver_site_verification }}" />
+    {% endif %}
     <meta property="og:site_name" content="NLP Lab" />
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="{{ 'en_US' if is_en_lang else 'ko_KR' }}" />
     {% if meta_title is defined and meta_title %}
     <meta property="og:title" content="{{ meta_title }}" />
     {% endif %}
     {% if meta_description is defined and meta_description %}
     <meta property="og:description" content="{{ meta_description }}" />
     {% endif %}
+    {% if og_image_url is defined and og_image_url %}
+    <meta property="og:image" content="{{ og_image_url }}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="{{ og_image_url }}" />
+    {% else %}
     <meta name="twitter:card" content="summary" />
+    {% endif %}
+    {% if structured_data is defined and structured_data %}
+    {% for item in structured_data %}
+    <script type="application/ld+json">{{ item | tojson }}</script>
+    {% endfor %}
+    {% endif %}
     <title>{% block title %}{{ meta_title | default('NLP Lab') }}{% endblock %}</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='images/favicon.ico') }}" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

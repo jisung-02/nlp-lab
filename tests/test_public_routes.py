@@ -857,8 +857,8 @@ def test_public_pages_render_search_metadata_for_configured_domain(
 
     assert status_code == 200
     assert (
-        '<meta name="description" content="Kyung Hee University NLP Lab researches '
-        "natural language processing"
+        '<meta name="description" content="Kyung Hee University NLP Lab, '
+        "led by Prof. Seong-Bae Park"
     ) in body
     assert '<meta name="robots" content="index,follow" />' in body
     assert '<link rel="canonical" href="https://lab.example.test/?lang=en" />' in body
@@ -880,8 +880,9 @@ def test_home_page_targets_korean_search_metadata():
 
     expected_title = "경희대 NLP 연구실 | 경희대학교 자연어처리 연구실"
     expected_description = (
-        "경희대학교 컴퓨터공학부 박성배 교수의 NLP 연구실입니다. "
-        "자연어처리, 정보검색, 질의응답, 대화 시스템, 텍스트 마이닝을 연구합니다."
+        "경희대학교 인공지능학과 박성배 교수의 자연어처리(NLP) 연구실입니다. "
+        "자연어처리, 대화 시스템, 질의응답, 정보검색, 텍스트 마이닝을 연구하며 "
+        "컴퓨터공학·수학·응용수학 전공 학생의 연구 참여와 대학원 진학을 환영합니다."
     )
     assert status_code == 200
     assert f"<title>{expected_title}</title>" in body
@@ -1000,3 +1001,232 @@ def test_sitemap_xml_lists_public_language_urls_and_project_details(
     assert "<loc>https://lab.example.test/projects/project-one?lang=kr</loc>" in body
     assert "<loc>https://lab.example.test/projects/project-one?lang=en</loc>" in body
     assert "/admin" not in body
+
+
+def test_robots_txt_allows_ai_crawlers(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("APP_DOMAIN", "lab.example.test")
+    get_settings.cache_clear()
+    app, _ = _make_test_client_app()
+
+    try:
+        status_code, _, body = _request(app, "GET", "/robots.txt")
+    finally:
+        get_settings.cache_clear()
+
+    assert status_code == 200
+    for user_agent in ("GPTBot", "ClaudeBot", "PerplexityBot", "Google-Extended"):
+        block = f"User-agent: {user_agent}\nAllow: /\nDisallow: /admin"
+        assert block in body
+
+
+def test_llms_txt_summarizes_lab_content(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("APP_DOMAIN", "lab.example.test")
+    get_settings.cache_clear()
+    app, engine = _make_test_client_app()
+    with Session(engine) as session:
+        session.add(
+            Project(
+                title="project-llms",
+                slug="project-llms",
+                summary="summary llms",
+                description="description llms",
+                status=ProjectStatus.ONGOING,
+                start_date=date(2025, 1, 1),
+                end_date=None,
+                created_at=_dt(1),
+                updated_at=_dt(1),
+            )
+        )
+        session.add(
+            Publication(
+                title="publication-llms",
+                authors="Author One",
+                venue="Venue One",
+                year=2026,
+                link="https://example.com/paper",
+                related_project_id=None,
+                created_at=_dt(2),
+            )
+        )
+        session.commit()
+
+    try:
+        status_code, headers, body = _request(app, "GET", "/llms.txt")
+    finally:
+        get_settings.cache_clear()
+
+    content_type = _header_value(headers, "content-type")
+    assert status_code == 200
+    assert content_type is not None
+    assert content_type.startswith("text/markdown")
+    assert body.startswith("# Kyung Hee University NLP Lab")
+    assert "## About" in body
+    assert "Prof. Seong-Bae Park" in body
+    assert "## For Prospective Students" in body
+    assert "수학과" in body
+    assert "[project-llms](https://lab.example.test/projects/project-llms)" in body
+    assert 'Author One. "publication-llms". Venue One, 2026.' in body
+    assert "https://example.com/paper" in body
+    assert "## Contact" in body
+
+
+def test_sitemap_xml_includes_hreflang_alternates(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("APP_DOMAIN", "lab.example.test")
+    get_settings.cache_clear()
+    app, _ = _make_test_client_app()
+
+    try:
+        status_code, _, body = _request(app, "GET", "/sitemap.xml")
+    finally:
+        get_settings.cache_clear()
+
+    assert status_code == 200
+    assert 'xmlns:xhtml="http://www.w3.org/1999/xhtml"' in body
+    assert (
+        '<xhtml:link rel="alternate" hreflang="ko" '
+        'href="https://lab.example.test/?lang=kr" />'
+    ) in body
+    assert (
+        '<xhtml:link rel="alternate" hreflang="en" '
+        'href="https://lab.example.test/?lang=en" />'
+    ) in body
+    assert (
+        '<xhtml:link rel="alternate" hreflang="x-default" '
+        'href="https://lab.example.test/?lang=kr" />'
+    ) in body
+
+
+def test_home_page_renders_og_image_locale_and_organization_jsonld(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("APP_DOMAIN", "lab.example.test")
+    monkeypatch.setenv("NAVER_SITE_VERIFICATION", "naver-token")
+    get_settings.cache_clear()
+    app, _ = _make_test_client_app()
+
+    try:
+        status_code, _, body = _request(app, "GET", "/?lang=kr")
+    finally:
+        get_settings.cache_clear()
+
+    assert status_code == 200
+    assert (
+        '<meta property="og:image" '
+        'content="https://lab.example.test/static/images/hero.jpg" />'
+    ) in body
+    assert '<meta property="og:locale" content="ko_KR" />' in body
+    assert '<meta name="twitter:card" content="summary_large_image" />' in body
+    assert '<meta name="naver-site-verification" content="naver-token" />' in body
+    assert '<script type="application/ld+json">' in body
+    assert '"@type": "ResearchOrganization"' in body
+    assert '"Kyung Hee University"' in body
+
+
+def test_members_page_renders_person_jsonld(app_and_engine):
+    app, engine = app_and_engine
+    with Session(engine) as session:
+        session.add(
+            Member(
+                name="member-jsonld",
+                role=MemberRole.RESEARCHER,
+                email="member-jsonld@example.com",
+                created_at=_dt(1),
+                updated_at=_dt(1),
+            )
+        )
+        session.commit()
+
+    status_code, _, body = _request(app, "GET", "/members?lang=en")
+
+    assert status_code == 200
+    assert '"@type": "Person"' in body
+    assert '"member-jsonld"' in body
+
+
+def test_publications_page_renders_scholarly_article_jsonld(app_and_engine):
+    app, engine = app_and_engine
+    with Session(engine) as session:
+        session.add(
+            Publication(
+                title="publication-jsonld",
+                authors="Author JSONLD",
+                venue="Venue JSONLD",
+                year=2026,
+                link=None,
+                related_project_id=None,
+                created_at=_dt(1),
+            )
+        )
+        session.commit()
+
+    status_code, _, body = _request(app, "GET", "/publications?lang=en")
+
+    assert status_code == 200
+    assert '"@type": "ScholarlyArticle"' in body
+    assert '"publication-jsonld"' in body
+
+
+def test_project_detail_renders_research_project_and_breadcrumb_jsonld(app_and_engine):
+    app, engine = app_and_engine
+    with Session(engine) as session:
+        session.add(
+            Project(
+                title="project-jsonld",
+                slug="project-jsonld",
+                summary="summary jsonld",
+                description="description jsonld",
+                status=ProjectStatus.ONGOING,
+                start_date=date(2025, 1, 1),
+                end_date=None,
+                created_at=_dt(1),
+                updated_at=_dt(1),
+            )
+        )
+        session.commit()
+
+    status_code, _, body = _request(app, "GET", "/projects/project-jsonld?lang=en")
+
+    assert status_code == 200
+    assert '"@type": "ResearchProject"' in body
+    assert '"@type": "BreadcrumbList"' in body
+
+
+def test_google_site_verification_file_served_at_root(app_and_engine):
+    app, _ = app_and_engine
+
+    status_code, headers, body = _request(app, "GET", "/googlef810f48826f17ab4.html")
+
+    content_type = _header_value(headers, "content-type")
+    assert status_code == 200
+    assert content_type is not None
+    assert content_type.startswith("text/html")
+    assert body == "google-site-verification: googlef810f48826f17ab4.html"
+
+
+def test_home_jsonld_scripts_are_valid_json(app_and_engine):
+    import json
+    import re
+
+    app, _ = app_and_engine
+
+    status_code, _, body = _request(app, "GET", "/?lang=kr")
+
+    assert status_code == 200
+    scripts = re.findall(
+        r'<script type="application/ld\+json">(.*?)</script>', body, re.DOTALL
+    )
+    assert scripts
+    for script in scripts:
+        data = json.loads(script)
+        assert data["@context"] == "https://schema.org"
+
+
+def test_home_page_renders_meta_keywords(app_and_engine):
+    app, _ = app_and_engine
+
+    status_code, _, body = _request(app, "GET", "/?lang=kr")
+
+    assert status_code == 200
+    assert '<meta name="keywords" content="' in body
+    for keyword in ("경희대학교", "소프트웨어융합대학", "인공지능학과", "자연어처리"):
+        assert keyword in body

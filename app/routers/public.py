@@ -13,7 +13,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, col, select
 
 from app.core.config import get_settings
-from app.core.constants import HOME_HERO_IMAGE_POST_SLUG, ProjectStatus
+from app.core.constants import HOME_HERO_IMAGE_POST_SLUG, MemberRole, ProjectStatus
 from app.db.session import get_session
 from app.models.member import Member
 from app.models.post import Post
@@ -26,33 +26,43 @@ router = APIRouter()
 PUBLIC_SEO_COPY = {
     "/": {
         "kr": (
-            "경희대학교 컴퓨터공학부 박성배 교수의 NLP 연구실입니다. "
-            "자연어처리, 정보검색, 질의응답, 대화 시스템, 텍스트 마이닝을 연구합니다."
+            "경희대학교 인공지능학과 박성배 교수의 자연어처리(NLP) 연구실입니다. "
+            "자연어처리, 대화 시스템, 질의응답, 정보검색, 텍스트 마이닝을 연구하며 "
+            "컴퓨터공학·수학·응용수학 전공 학생의 연구 참여와 대학원 진학을 환영합니다."
         ),
         "en": (
-            "Kyung Hee University NLP Lab researches natural language processing, "
-            "language understanding, question answering, dialogue systems, "
-            "and information retrieval."
+            "Kyung Hee University NLP Lab, led by Prof. Seong-Bae Park "
+            "(Department of Artificial Intelligence), researches natural language "
+            "processing, dialogue systems, question answering, and information retrieval."
         ),
     },
     "/members": {
-        "kr": "경희대학교 NLP 연구실 구성원과 연구진을 소개합니다.",
+        "kr": "경희대학교 인공지능학과 자연어처리 연구실의 교수와 구성원을 소개합니다.",
         "en": "Meet the members and researchers of Kyung Hee University NLP Lab.",
     },
     "/projects": {
-        "kr": "경희대학교 NLP 연구실의 자연어처리 연구 분야와 프로젝트를 소개합니다.",
+        "kr": (
+            "경희대학교 자연어처리 연구실의 연구 분야와 프로젝트를 소개합니다. "
+            "자연어처리, 대화 시스템, 질의응답, 정보검색, 기계학습."
+        ),
         "en": (
             "Explore natural language processing research areas and projects "
             "at Kyung Hee University NLP Lab."
         ),
     },
     "/publications": {
-        "kr": "경희대학교 NLP 연구실의 논문과 연구 성과를 확인하세요.",
+        "kr": "경희대학교 자연어처리 연구실의 논문과 연구 성과를 확인하세요.",
         "en": "Browse publications and research outputs from Kyung Hee University NLP Lab.",
     },
     "/contact": {
-        "kr": "경희대학교 NLP 연구실 위치, 연락처, 방문 정보를 안내합니다.",
-        "en": "Find contact, location, and visit information for Kyung Hee University NLP Lab.",
+        "kr": (
+            "경희대학교 자연어처리 연구실(국제캠퍼스 전자정보대학) 위치, 연락처, "
+            "방문 정보를 안내합니다. 학부연구생·대학원 진학 문의를 환영합니다."
+        ),
+        "en": (
+            "Find contact, location (International Campus, Yongin), and visit "
+            "information for Kyung Hee University NLP Lab."
+        ),
     },
 }
 
@@ -80,6 +90,68 @@ PUBLIC_SEO_TITLES = {
 }
 
 PUBLIC_STATIC_SITEMAP_PATHS = ("/", "/members", "/projects", "/publications", "/contact")
+
+LLMS_TXT_PUBLICATION_LIMIT = 20
+
+ORGANIZATION_NAMES = {
+    "kr": "경희대학교 자연어처리 연구실",
+    "en": "Kyung Hee University NLP Lab",
+}
+
+DEPARTMENT_NAMES = {
+    "kr": "경희대학교 인공지능학과",
+    "en": "Department of Artificial Intelligence, Kyung Hee University",
+}
+
+MEMBER_ROLE_JOB_TITLES = {
+    MemberRole.PROFESSOR: "Professor",
+    MemberRole.RESEARCHER: "Researcher",
+    MemberRole.PHD: "PhD Student",
+    MemberRole.MASTER: "Master's Student",
+    MemberRole.UNDERGRAD: "Undergraduate Researcher",
+}
+
+RESEARCH_TOPICS = (
+    "Natural Language Processing",
+    "Machine Learning",
+    "Dialogue Systems",
+    "Question Answering",
+    "Information Retrieval",
+    "Text Mining",
+    "Information Extraction",
+)
+
+SEO_KEYWORDS = {
+    "kr": (
+        "경희대학교",
+        "경희대",
+        "경희대학교 국제캠퍼스",
+        "소프트웨어융합대학",
+        "컴퓨터공학부",
+        "인공지능학과",
+        "수학과",
+        "응용수학과",
+        "자연어처리",
+        "자연어처리 연구실",
+        "NLP 연구실",
+        "박성배 교수",
+        "대학원",
+        "학부연구생",
+        "인공지능",
+    ),
+    "en": (
+        "Kyung Hee University",
+        "KHU",
+        "College of Software Convergence",
+        "Department of Artificial Intelligence",
+        "Computer Science and Engineering",
+        "Natural Language Processing",
+        "NLP Lab",
+        "Seong-Bae Park",
+        "Machine Learning",
+        "Artificial Intelligence",
+    ),
+}
 
 LEGACY_PUBLIC_REDIRECTS = {
     "/index.html": "/",
@@ -271,19 +343,148 @@ def contact_page(request: Request):
     )
 
 
+AI_CRAWLER_USER_AGENTS = (
+    "GPTBot",
+    "OAI-SearchBot",
+    "ChatGPT-User",
+    "ClaudeBot",
+    "Claude-Web",
+    "anthropic-ai",
+    "PerplexityBot",
+    "Google-Extended",
+    "CCBot",
+)
+
+
+GOOGLE_SITE_VERIFICATION_FILENAME = "googlef810f48826f17ab4.html"
+GOOGLE_SITE_VERIFICATION_FILE_CONTENT = (
+    f"google-site-verification: {GOOGLE_SITE_VERIFICATION_FILENAME}"
+)
+
+
+@router.get(f"/{GOOGLE_SITE_VERIFICATION_FILENAME}", include_in_schema=False)
+def google_site_verification_file():
+    return PlainTextResponse(
+        GOOGLE_SITE_VERIFICATION_FILE_CONTENT,
+        media_type="text/html; charset=utf-8",
+    )
+
+
 @router.get("/robots.txt", include_in_schema=False)
 def robots_txt(request: Request):
-    content = "\n".join(
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin",
+        "",
+    ]
+    for user_agent in AI_CRAWLER_USER_AGENTS:
+        lines.extend(
+            [
+                f"User-agent: {user_agent}",
+                "Allow: /",
+                "Disallow: /admin",
+                "",
+            ]
+        )
+    lines.extend(
         [
-            "User-agent: *",
-            "Allow: /",
-            "Disallow: /admin",
-            "",
             f"Sitemap: {_absolute_public_url(request, '/sitemap.xml')}",
             "",
         ]
     )
-    return PlainTextResponse(content)
+    return PlainTextResponse("\n".join(lines))
+
+
+@router.get("/llms.txt", include_in_schema=False)
+def llms_txt(
+    request: Request,
+    session: Annotated[Session, Depends(get_session)],
+):
+    settings = get_settings()
+    projects = session.exec(select(Project).order_by(col(Project.created_at).desc())).all()
+    publications = session.exec(
+        select(Publication)
+        .order_by(col(Publication.year).desc(), col(Publication.id).desc())
+        .limit(LLMS_TXT_PUBLICATION_LIMIT)
+    ).all()
+
+    lines = [
+        "# Kyung Hee University NLP Lab (경희대학교 자연어처리 연구실)",
+        "",
+        f"> {PUBLIC_SEO_COPY['/']['en']}",
+        f"> {PUBLIC_SEO_COPY['/']['kr']}",
+        "",
+        "## About",
+        "",
+        (
+            "- Principal Investigator: Prof. Seong-Bae Park (박성배), "
+            "Department of Artificial Intelligence (Graduate School), "
+            "Kyung Hee University"
+        ),
+        f"- Research areas: {', '.join(RESEARCH_TOPICS)}",
+        (
+            "- Affiliation: College of Software Convergence (소프트웨어융합대학) / "
+            "Department of Artificial Intelligence (인공지능학과), Kyung Hee University"
+        ),
+        (
+            "- Location: College of Electronics and Information, "
+            "Kyung Hee University International Campus, Yongin, Republic of Korea"
+        ),
+        f"- Keywords: {', '.join(SEO_KEYWORDS['kr'] + SEO_KEYWORDS['en'])}",
+        "",
+        "## For Prospective Students (연구실 지원 안내)",
+        "",
+        (
+            "- The lab welcomes undergraduate research interns and graduate "
+            "applicants from Computer Science and Engineering (컴퓨터공학부·컴퓨터공학과), "
+            "Mathematics (수학과), and Applied Mathematics (응용수학과), "
+            "as well as related majors at Kyung Hee University."
+        ),
+        (
+            "- 경희대학교 컴퓨터공학부, 수학과, 응용수학과 등 관련 전공 학부생의 "
+            "학부연구생(연구실 인턴) 참여와 인공지능학과 대학원 진학을 환영합니다."
+        ),
+        f"- Inquiries: {settings.contact_email}",
+        "",
+        "## Pages",
+        "",
+    ]
+    for path in PUBLIC_STATIC_SITEMAP_PATHS:
+        title = PUBLIC_SEO_TITLES[path]["en"]
+        description = PUBLIC_SEO_COPY[path]["en"]
+        lines.append(f"- [{title}]({_absolute_public_url(request, path)}): {description}")
+
+    if projects:
+        lines.extend(["", "## Research Projects", ""])
+        for project in projects:
+            title = project.title_en or project.title
+            summary = project.summary_en or project.summary
+            url = _absolute_public_url(request, f"/projects/{project.slug}")
+            lines.append(f"- [{title}]({url}): {summary}")
+
+    if publications:
+        lines.extend(["", "## Recent Publications", ""])
+        for publication in publications:
+            title = publication.title_en or publication.title
+            authors = publication.authors_en or publication.authors
+            venue = publication.venue_en or publication.venue
+            entry = f'- {authors}. "{title}". {venue}, {publication.year}.'
+            if publication.link:
+                entry = f"{entry} {publication.link}"
+            lines.append(entry)
+
+    lines.extend(
+        [
+            "",
+            "## Contact",
+            "",
+            f"- Email: {settings.contact_email}",
+            f"- Address: {settings.contact_address}",
+            "",
+        ]
+    )
+    return PlainTextResponse("\n".join(lines), media_type="text/markdown; charset=utf-8")
 
 
 @router.api_route("/favicon.ico", methods=["GET", "HEAD"], include_in_schema=False)
@@ -300,31 +501,42 @@ def sitemap_xml(
     session: Annotated[Session, Depends(get_session)],
 ):
     projects = session.exec(select(Project).order_by(col(Project.updated_at).desc())).all()
-    sitemap_entries: list[tuple[str, str | None]] = []
-
-    for path in PUBLIC_STATIC_SITEMAP_PATHS:
-        for lang in ("kr", "en"):
-            sitemap_entries.append((_localized_path(path, lang), None))
+    sitemap_entries: list[tuple[str, str | None]] = [
+        (path, None) for path in PUBLIC_STATIC_SITEMAP_PATHS
+    ]
 
     for project in projects:
-        for lang in ("kr", "en"):
-            sitemap_entries.append(
-                (
-                    _localized_path(f"/projects/{project.slug}", lang),
-                    _format_sitemap_lastmod(project.updated_at),
-                )
+        sitemap_entries.append(
+            (
+                f"/projects/{project.slug}",
+                _format_sitemap_lastmod(project.updated_at),
             )
+        )
 
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+        '        xmlns:xhtml="http://www.w3.org/1999/xhtml">',
     ]
     for path, lastmod in sitemap_entries:
-        lines.append("  <url>")
-        lines.append(f"    <loc>{xml_escape(_absolute_public_url(request, path))}</loc>")
-        if lastmod:
-            lines.append(f"    <lastmod>{lastmod}</lastmod>")
-        lines.append("  </url>")
+        alternates = (
+            ("ko", _absolute_public_url(request, _localized_path(path, "kr"))),
+            ("en", _absolute_public_url(request, _localized_path(path, "en"))),
+            ("x-default", _absolute_public_url(request, _localized_path(path, "kr"))),
+        )
+        for lang in ("kr", "en"):
+            localized_url = _absolute_public_url(request, _localized_path(path, lang))
+            lines.append("  <url>")
+            lines.append(f"    <loc>{xml_escape(localized_url)}</loc>")
+            if lastmod:
+                lines.append(f"    <lastmod>{lastmod}</lastmod>")
+            for hreflang, href in alternates:
+                escaped_href = xml_escape(href, {'"': "&quot;"})
+                lines.append(
+                    f'    <xhtml:link rel="alternate" hreflang="{hreflang}" '
+                    f'href="{escaped_href}" />'
+                )
+            lines.append("  </url>")
     lines.append("</urlset>")
     lines.append("")
 
@@ -367,6 +579,7 @@ def _public_context(request: Request, **extra_context: object) -> dict[str, obje
         {
             "meta_description": _meta_description_for_context(request, context),
             "meta_title": _meta_title_for_context(request, context),
+            "meta_keywords": ", ".join(SEO_KEYWORDS.get(lang, SEO_KEYWORDS["en"])),
             "meta_robots": "index,follow",
             "canonical_url": _absolute_public_url(request, _replace_lang_in_query(request, lang)),
             "alternate_lang_urls": {
@@ -375,6 +588,11 @@ def _public_context(request: Request, **extra_context: object) -> dict[str, obje
                 "x-default": _absolute_public_url(request, _replace_lang_in_query(request, "kr")),
             },
             "google_site_verification": settings.google_site_verification,
+            "naver_site_verification": settings.naver_site_verification,
+            "og_image_url": _absolute_public_url(
+                request, request.url_for("static", path="images/hero.jpg").path
+            ),
+            "structured_data": _structured_data_for_context(request, context),
         }
     )
     return context
@@ -464,3 +682,174 @@ def _truncate_meta_description(value: str, limit: int = 160) -> str:
     if len(normalized) <= limit:
         return normalized
     return f"{normalized[: limit - 3].rstrip()}..."
+
+
+def _organization_jsonld(request: Request, lang: str) -> dict[str, object]:
+    settings = get_settings()
+    alternate_lang = "kr" if lang == "en" else "en"
+    return {
+        "@context": "https://schema.org",
+        "@type": "ResearchOrganization",
+        "name": ORGANIZATION_NAMES.get(lang, ORGANIZATION_NAMES["en"]),
+        "alternateName": ["NLP Lab", ORGANIZATION_NAMES[alternate_lang]],
+        "url": f"{_public_base_url(request)}/",
+        "logo": _absolute_public_url(
+            request, request.url_for("static", path="images/logo.svg").path
+        ),
+        "email": settings.contact_email,
+        "address": settings.contact_address,
+        "parentOrganization": {
+            "@type": "EducationalOrganization",
+            "name": DEPARTMENT_NAMES.get(lang, DEPARTMENT_NAMES["en"]),
+            "alternateName": DEPARTMENT_NAMES["kr" if lang == "en" else "en"],
+            "parentOrganization": {
+                "@type": "CollegeOrUniversity",
+                "name": "Kyung Hee University",
+                "alternateName": "경희대학교",
+                "url": "https://www.khu.ac.kr",
+            },
+        },
+        "employee": {
+            "@type": "Person",
+            "name": "Seong-Bae Park" if lang == "en" else "박성배",
+            "alternateName": "박성배" if lang == "en" else "Seong-Bae Park",
+            "jobTitle": "Professor",
+            "affiliation": {
+                "@type": "EducationalOrganization",
+                "name": DEPARTMENT_NAMES.get(lang, DEPARTMENT_NAMES["en"]),
+            },
+        },
+        "knowsAbout": list(RESEARCH_TOPICS),
+        "keywords": ", ".join(SEO_KEYWORDS.get(lang, SEO_KEYWORDS["en"])),
+    }
+
+
+def _members_jsonld(lang: str, members: list[Member]) -> dict[str, object]:
+    organization_name = ORGANIZATION_NAMES.get(lang, ORGANIZATION_NAMES["en"])
+    item_list_elements: list[dict[str, object]] = []
+    for position, member in enumerate(members, start=1):
+        name = (member.name_en if lang == "en" else member.name) or member.name
+        item_list_elements.append(
+            {
+                "@type": "ListItem",
+                "position": position,
+                "item": {
+                    "@type": "Person",
+                    "name": name,
+                    "jobTitle": MEMBER_ROLE_JOB_TITLES.get(member.role, member.role.value),
+                    "affiliation": {
+                        "@type": "ResearchOrganization",
+                        "name": organization_name,
+                    },
+                },
+            }
+        )
+    return {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": PUBLIC_SEO_TITLES["/members"].get(lang, PUBLIC_SEO_TITLES["/members"]["en"]),
+        "itemListElement": item_list_elements,
+    }
+
+
+def _publications_jsonld(lang: str, publications: list[Publication]) -> dict[str, object]:
+    item_list_elements: list[dict[str, object]] = []
+    for position, publication in enumerate(publications, start=1):
+        title = (publication.title_en if lang == "en" else publication.title) or publication.title
+        authors = (
+            publication.authors_en if lang == "en" else publication.authors
+        ) or publication.authors
+        venue = (publication.venue_en if lang == "en" else publication.venue) or publication.venue
+        article: dict[str, object] = {
+            "@type": "ScholarlyArticle",
+            "name": title,
+            "author": authors,
+            "datePublished": str(publication.year),
+            "isPartOf": {"@type": "Periodical", "name": venue},
+        }
+        if publication.link:
+            article["url"] = publication.link
+        item_list_elements.append(
+            {
+                "@type": "ListItem",
+                "position": position,
+                "item": article,
+            }
+        )
+    return {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": PUBLIC_SEO_TITLES["/publications"].get(
+            lang, PUBLIC_SEO_TITLES["/publications"]["en"]
+        ),
+        "itemListElement": item_list_elements,
+    }
+
+
+def _project_jsonld(request: Request, lang: str, project: Project) -> list[dict[str, object]]:
+    title = (project.title_en if lang == "en" else project.title) or project.title
+    summary = (project.summary_en if lang == "en" else project.summary) or project.summary
+    project_url = _absolute_public_url(request, _localized_path(f"/projects/{project.slug}", lang))
+    research_project: dict[str, object] = {
+        "@context": "https://schema.org",
+        "@type": "ResearchProject",
+        "name": title,
+        "description": summary,
+        "url": project_url,
+        "parentOrganization": {
+            "@type": "ResearchOrganization",
+            "name": ORGANIZATION_NAMES.get(lang, ORGANIZATION_NAMES["en"]),
+        },
+    }
+    breadcrumbs = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home" if lang == "en" else "홈",
+                "item": _absolute_public_url(request, _localized_path("/", lang)),
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Research" if lang == "en" else "연구 분야",
+                "item": _absolute_public_url(request, _localized_path("/projects", lang)),
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": title,
+                "item": project_url,
+            },
+        ],
+    }
+    return [research_project, breadcrumbs]
+
+
+def _structured_data_for_context(
+    request: Request, context: dict[str, object]
+) -> list[dict[str, object]]:
+    lang = cast(str, context["lang"])
+    path = request.url.path
+    structured_data: list[dict[str, object]] = [_organization_jsonld(request, lang)]
+
+    if path == "/members":
+        members_value = context.get("members")
+        if isinstance(members_value, (list, tuple)):
+            members = [item for item in members_value if isinstance(item, Member)]
+            if members:
+                structured_data.append(_members_jsonld(lang, members))
+    elif path == "/publications":
+        publications_value = context.get("publications")
+        if isinstance(publications_value, (list, tuple)):
+            publications = [item for item in publications_value if isinstance(item, Publication)]
+            if publications:
+                structured_data.append(_publications_jsonld(lang, publications))
+    elif path.startswith("/projects/"):
+        project = context.get("project")
+        if isinstance(project, Project):
+            structured_data.extend(_project_jsonld(request, lang, project))
+
+    return structured_data
