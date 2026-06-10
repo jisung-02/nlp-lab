@@ -857,8 +857,8 @@ def test_public_pages_render_search_metadata_for_configured_domain(
 
     assert status_code == 200
     assert (
-        '<meta name="description" content="Kyung Hee University NLP Lab researches '
-        "natural language processing"
+        '<meta name="description" content="Kyung Hee University NLP Lab, '
+        "led by Prof. Seong-Bae Park"
     ) in body
     assert '<meta name="robots" content="index,follow" />' in body
     assert '<link rel="canonical" href="https://lab.example.test/?lang=en" />' in body
@@ -880,8 +880,9 @@ def test_home_page_targets_korean_search_metadata():
 
     expected_title = "경희대 NLP 연구실 | 경희대학교 자연어처리 연구실"
     expected_description = (
-        "경희대학교 컴퓨터공학부 박성배 교수의 NLP 연구실입니다. "
-        "자연어처리, 정보검색, 질의응답, 대화 시스템, 텍스트 마이닝을 연구합니다."
+        "경희대학교 인공지능학과 박성배 교수의 자연어처리(NLP) 연구실입니다. "
+        "자연어처리, 대화 시스템, 질의응답, 정보검색, 텍스트 마이닝을 연구하며 "
+        "컴퓨터공학·수학·응용수학 전공 학생의 연구 참여와 대학원 진학을 환영합니다."
     )
     assert status_code == 200
     assert f"<title>{expected_title}</title>" in body
@@ -1059,6 +1060,10 @@ def test_llms_txt_summarizes_lab_content(monkeypatch: pytest.MonkeyPatch):
     assert content_type is not None
     assert content_type.startswith("text/markdown")
     assert body.startswith("# Kyung Hee University NLP Lab")
+    assert "## About" in body
+    assert "Prof. Seong-Bae Park" in body
+    assert "## For Prospective Students" in body
+    assert "수학과" in body
     assert "[project-llms](https://lab.example.test/projects/project-llms)" in body
     assert 'Author One. "publication-llms". Venue One, 2026.' in body
     assert "https://example.com/paper" in body
@@ -1196,3 +1201,21 @@ def test_google_site_verification_file_served_at_root(app_and_engine):
     assert content_type is not None
     assert content_type.startswith("text/html")
     assert body == "google-site-verification: googlef810f48826f17ab4.html"
+
+
+def test_home_jsonld_scripts_are_valid_json(app_and_engine):
+    import json
+    import re
+
+    app, _ = app_and_engine
+
+    status_code, _, body = _request(app, "GET", "/?lang=kr")
+
+    assert status_code == 200
+    scripts = re.findall(
+        r'<script type="application/ld\+json">(.*?)</script>', body, re.DOTALL
+    )
+    assert scripts
+    for script in scripts:
+        data = json.loads(script)
+        assert data["@context"] == "https://schema.org"

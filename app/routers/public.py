@@ -13,7 +13,7 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, col, select
 
 from app.core.config import get_settings
-from app.core.constants import HOME_HERO_IMAGE_POST_SLUG, ProjectStatus
+from app.core.constants import HOME_HERO_IMAGE_POST_SLUG, MemberRole, ProjectStatus
 from app.db.session import get_session
 from app.models.member import Member
 from app.models.post import Post
@@ -26,33 +26,43 @@ router = APIRouter()
 PUBLIC_SEO_COPY = {
     "/": {
         "kr": (
-            "경희대학교 컴퓨터공학부 박성배 교수의 NLP 연구실입니다. "
-            "자연어처리, 정보검색, 질의응답, 대화 시스템, 텍스트 마이닝을 연구합니다."
+            "경희대학교 인공지능학과 박성배 교수의 자연어처리(NLP) 연구실입니다. "
+            "자연어처리, 대화 시스템, 질의응답, 정보검색, 텍스트 마이닝을 연구하며 "
+            "컴퓨터공학·수학·응용수학 전공 학생의 연구 참여와 대학원 진학을 환영합니다."
         ),
         "en": (
-            "Kyung Hee University NLP Lab researches natural language processing, "
-            "language understanding, question answering, dialogue systems, "
-            "and information retrieval."
+            "Kyung Hee University NLP Lab, led by Prof. Seong-Bae Park "
+            "(Department of Artificial Intelligence), researches natural language "
+            "processing, dialogue systems, question answering, and information retrieval."
         ),
     },
     "/members": {
-        "kr": "경희대학교 NLP 연구실 구성원과 연구진을 소개합니다.",
+        "kr": "경희대학교 인공지능학과 자연어처리 연구실의 교수와 구성원을 소개합니다.",
         "en": "Meet the members and researchers of Kyung Hee University NLP Lab.",
     },
     "/projects": {
-        "kr": "경희대학교 NLP 연구실의 자연어처리 연구 분야와 프로젝트를 소개합니다.",
+        "kr": (
+            "경희대학교 자연어처리 연구실의 연구 분야와 프로젝트를 소개합니다. "
+            "자연어처리, 대화 시스템, 질의응답, 정보검색, 기계학습."
+        ),
         "en": (
             "Explore natural language processing research areas and projects "
             "at Kyung Hee University NLP Lab."
         ),
     },
     "/publications": {
-        "kr": "경희대학교 NLP 연구실의 논문과 연구 성과를 확인하세요.",
+        "kr": "경희대학교 자연어처리 연구실의 논문과 연구 성과를 확인하세요.",
         "en": "Browse publications and research outputs from Kyung Hee University NLP Lab.",
     },
     "/contact": {
-        "kr": "경희대학교 NLP 연구실 위치, 연락처, 방문 정보를 안내합니다.",
-        "en": "Find contact, location, and visit information for Kyung Hee University NLP Lab.",
+        "kr": (
+            "경희대학교 자연어처리 연구실(국제캠퍼스 전자정보대학) 위치, 연락처, "
+            "방문 정보를 안내합니다. 학부연구생·대학원 진학 문의를 환영합니다."
+        ),
+        "en": (
+            "Find contact, location (International Campus, Yongin), and visit "
+            "information for Kyung Hee University NLP Lab."
+        ),
     },
 }
 
@@ -87,6 +97,29 @@ ORGANIZATION_NAMES = {
     "kr": "경희대학교 자연어처리 연구실",
     "en": "Kyung Hee University NLP Lab",
 }
+
+DEPARTMENT_NAMES = {
+    "kr": "경희대학교 인공지능학과",
+    "en": "Department of Artificial Intelligence, Kyung Hee University",
+}
+
+MEMBER_ROLE_JOB_TITLES = {
+    MemberRole.PROFESSOR: "Professor",
+    MemberRole.RESEARCHER: "Researcher",
+    MemberRole.PHD: "PhD Student",
+    MemberRole.MASTER: "Master's Student",
+    MemberRole.UNDERGRAD: "Undergraduate Researcher",
+}
+
+RESEARCH_TOPICS = (
+    "Natural Language Processing",
+    "Machine Learning",
+    "Dialogue Systems",
+    "Question Answering",
+    "Information Retrieval",
+    "Text Mining",
+    "Information Extraction",
+)
 
 LEGACY_PUBLIC_REDIRECTS = {
     "/index.html": "/",
@@ -350,6 +383,33 @@ def llms_txt(
         f"> {PUBLIC_SEO_COPY['/']['en']}",
         f"> {PUBLIC_SEO_COPY['/']['kr']}",
         "",
+        "## About",
+        "",
+        (
+            "- Principal Investigator: Prof. Seong-Bae Park (박성배), "
+            "Department of Artificial Intelligence (Graduate School), "
+            "Kyung Hee University"
+        ),
+        f"- Research areas: {', '.join(RESEARCH_TOPICS)}",
+        (
+            "- Location: College of Electronics and Information, "
+            "Kyung Hee University International Campus, Yongin, Republic of Korea"
+        ),
+        "",
+        "## For Prospective Students (연구실 지원 안내)",
+        "",
+        (
+            "- The lab welcomes undergraduate research interns and graduate "
+            "applicants from Computer Science and Engineering (컴퓨터공학부·컴퓨터공학과), "
+            "Mathematics (수학과), and Applied Mathematics (응용수학과), "
+            "as well as related majors at Kyung Hee University."
+        ),
+        (
+            "- 경희대학교 컴퓨터공학부, 수학과, 응용수학과 등 관련 전공 학부생의 "
+            "학부연구생(연구실 인턴) 참여와 인공지능학과 대학원 진학을 환영합니다."
+        ),
+        f"- Inquiries: {settings.contact_email}",
+        "",
         "## Pages",
         "",
     ]
@@ -434,9 +494,10 @@ def sitemap_xml(
             if lastmod:
                 lines.append(f"    <lastmod>{lastmod}</lastmod>")
             for hreflang, href in alternates:
+                escaped_href = xml_escape(href, {'"': "&quot;"})
                 lines.append(
                     f'    <xhtml:link rel="alternate" hreflang="{hreflang}" '
-                    f'href="{xml_escape(href)}" />'
+                    f'href="{escaped_href}" />'
                 )
             lines.append("  </url>")
     lines.append("</urlset>")
@@ -600,18 +661,27 @@ def _organization_jsonld(request: Request, lang: str) -> dict[str, object]:
         "email": settings.contact_email,
         "address": settings.contact_address,
         "parentOrganization": {
-            "@type": "CollegeOrUniversity",
-            "name": "Kyung Hee University",
-            "alternateName": "경희대학교",
-            "url": "https://www.khu.ac.kr",
+            "@type": "EducationalOrganization",
+            "name": DEPARTMENT_NAMES.get(lang, DEPARTMENT_NAMES["en"]),
+            "alternateName": DEPARTMENT_NAMES["kr" if lang == "en" else "en"],
+            "parentOrganization": {
+                "@type": "CollegeOrUniversity",
+                "name": "Kyung Hee University",
+                "alternateName": "경희대학교",
+                "url": "https://www.khu.ac.kr",
+            },
         },
-        "knowsAbout": [
-            "Natural Language Processing",
-            "Information Retrieval",
-            "Question Answering",
-            "Dialogue Systems",
-            "Text Mining",
-        ],
+        "employee": {
+            "@type": "Person",
+            "name": "Seong-Bae Park" if lang == "en" else "박성배",
+            "alternateName": "박성배" if lang == "en" else "Seong-Bae Park",
+            "jobTitle": "Professor",
+            "affiliation": {
+                "@type": "EducationalOrganization",
+                "name": DEPARTMENT_NAMES.get(lang, DEPARTMENT_NAMES["en"]),
+            },
+        },
+        "knowsAbout": list(RESEARCH_TOPICS),
     }
 
 
@@ -627,7 +697,7 @@ def _members_jsonld(lang: str, members: list[Member]) -> dict[str, object]:
                 "item": {
                     "@type": "Person",
                     "name": name,
-                    "jobTitle": member.role.value,
+                    "jobTitle": MEMBER_ROLE_JOB_TITLES.get(member.role, member.role.value),
                     "affiliation": {
                         "@type": "ResearchOrganization",
                         "name": organization_name,
@@ -656,7 +726,7 @@ def _publications_jsonld(lang: str, publications: list[Publication]) -> dict[str
             "name": title,
             "author": authors,
             "datePublished": str(publication.year),
-            "publication": venue,
+            "isPartOf": {"@type": "Periodical", "name": venue},
         }
         if publication.link:
             article["url"] = publication.link
