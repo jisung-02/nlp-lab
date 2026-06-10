@@ -81,6 +81,13 @@ PUBLIC_SEO_TITLES = {
 
 PUBLIC_STATIC_SITEMAP_PATHS = ("/", "/members", "/projects", "/publications", "/contact")
 
+LLMS_TXT_PUBLICATION_LIMIT = 20
+
+ORGANIZATION_NAMES = {
+    "kr": "경희대학교 자연어처리 연구실",
+    "en": "Kyung Hee University NLP Lab",
+}
+
 LEGACY_PUBLIC_REDIRECTS = {
     "/index.html": "/",
     "/home": "/",
@@ -271,19 +278,102 @@ def contact_page(request: Request):
     )
 
 
+AI_CRAWLER_USER_AGENTS = (
+    "GPTBot",
+    "OAI-SearchBot",
+    "ChatGPT-User",
+    "ClaudeBot",
+    "Claude-Web",
+    "anthropic-ai",
+    "PerplexityBot",
+    "Google-Extended",
+    "CCBot",
+)
+
+
 @router.get("/robots.txt", include_in_schema=False)
 def robots_txt(request: Request):
-    content = "\n".join(
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin",
+        "",
+    ]
+    for user_agent in AI_CRAWLER_USER_AGENTS:
+        lines.extend(
+            [
+                f"User-agent: {user_agent}",
+                "Allow: /",
+                "Disallow: /admin",
+                "",
+            ]
+        )
+    lines.extend(
         [
-            "User-agent: *",
-            "Allow: /",
-            "Disallow: /admin",
-            "",
             f"Sitemap: {_absolute_public_url(request, '/sitemap.xml')}",
             "",
         ]
     )
-    return PlainTextResponse(content)
+    return PlainTextResponse("\n".join(lines))
+
+
+@router.get("/llms.txt", include_in_schema=False)
+def llms_txt(
+    request: Request,
+    session: Annotated[Session, Depends(get_session)],
+):
+    settings = get_settings()
+    projects = session.exec(select(Project).order_by(col(Project.created_at).desc())).all()
+    publications = session.exec(
+        select(Publication)
+        .order_by(col(Publication.year).desc(), col(Publication.id).desc())
+        .limit(LLMS_TXT_PUBLICATION_LIMIT)
+    ).all()
+
+    lines = [
+        "# Kyung Hee University NLP Lab (경희대학교 자연어처리 연구실)",
+        "",
+        f"> {PUBLIC_SEO_COPY['/']['en']}",
+        f"> {PUBLIC_SEO_COPY['/']['kr']}",
+        "",
+        "## Pages",
+        "",
+    ]
+    for path in PUBLIC_STATIC_SITEMAP_PATHS:
+        title = PUBLIC_SEO_TITLES[path]["en"]
+        description = PUBLIC_SEO_COPY[path]["en"]
+        lines.append(f"- [{title}]({_absolute_public_url(request, path)}): {description}")
+
+    if projects:
+        lines.extend(["", "## Research Projects", ""])
+        for project in projects:
+            title = project.title_en or project.title
+            summary = project.summary_en or project.summary
+            url = _absolute_public_url(request, f"/projects/{project.slug}")
+            lines.append(f"- [{title}]({url}): {summary}")
+
+    if publications:
+        lines.extend(["", "## Recent Publications", ""])
+        for publication in publications:
+            title = publication.title_en or publication.title
+            authors = publication.authors_en or publication.authors
+            venue = publication.venue_en or publication.venue
+            entry = f'- {authors}. "{title}". {venue}, {publication.year}.'
+            if publication.link:
+                entry = f"{entry} {publication.link}"
+            lines.append(entry)
+
+    lines.extend(
+        [
+            "",
+            "## Contact",
+            "",
+            f"- Email: {settings.contact_email}",
+            f"- Address: {settings.contact_address}",
+            "",
+        ]
+    )
+    return PlainTextResponse("\n".join(lines), media_type="text/markdown; charset=utf-8")
 
 
 @router.api_route("/favicon.ico", methods=["GET", "HEAD"], include_in_schema=False)
@@ -300,31 +390,41 @@ def sitemap_xml(
     session: Annotated[Session, Depends(get_session)],
 ):
     projects = session.exec(select(Project).order_by(col(Project.updated_at).desc())).all()
-    sitemap_entries: list[tuple[str, str | None]] = []
-
-    for path in PUBLIC_STATIC_SITEMAP_PATHS:
-        for lang in ("kr", "en"):
-            sitemap_entries.append((_localized_path(path, lang), None))
+    sitemap_entries: list[tuple[str, str | None]] = [
+        (path, None) for path in PUBLIC_STATIC_SITEMAP_PATHS
+    ]
 
     for project in projects:
-        for lang in ("kr", "en"):
-            sitemap_entries.append(
-                (
-                    _localized_path(f"/projects/{project.slug}", lang),
-                    _format_sitemap_lastmod(project.updated_at),
-                )
+        sitemap_entries.append(
+            (
+                f"/projects/{project.slug}",
+                _format_sitemap_lastmod(project.updated_at),
             )
+        )
 
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+        '        xmlns:xhtml="http://www.w3.org/1999/xhtml">',
     ]
     for path, lastmod in sitemap_entries:
-        lines.append("  <url>")
-        lines.append(f"    <loc>{xml_escape(_absolute_public_url(request, path))}</loc>")
-        if lastmod:
-            lines.append(f"    <lastmod>{lastmod}</lastmod>")
-        lines.append("  </url>")
+        alternates = (
+            ("ko", _absolute_public_url(request, _localized_path(path, "kr"))),
+            ("en", _absolute_public_url(request, _localized_path(path, "en"))),
+            ("x-default", _absolute_public_url(request, _localized_path(path, "kr"))),
+        )
+        for lang in ("kr", "en"):
+            localized_url = _absolute_public_url(request, _localized_path(path, lang))
+            lines.append("  <url>")
+            lines.append(f"    <loc>{xml_escape(localized_url)}</loc>")
+            if lastmod:
+                lines.append(f"    <lastmod>{lastmod}</lastmod>")
+            for hreflang, href in alternates:
+                lines.append(
+                    f'    <xhtml:link rel="alternate" hreflang="{hreflang}" '
+                    f'href="{xml_escape(href)}" />'
+                )
+            lines.append("  </url>")
     lines.append("</urlset>")
     lines.append("")
 
@@ -375,6 +475,11 @@ def _public_context(request: Request, **extra_context: object) -> dict[str, obje
                 "x-default": _absolute_public_url(request, _replace_lang_in_query(request, "kr")),
             },
             "google_site_verification": settings.google_site_verification,
+            "naver_site_verification": settings.naver_site_verification,
+            "og_image_url": _absolute_public_url(
+                request, request.url_for("static", path="images/hero.jpg").path
+            ),
+            "structured_data": _structured_data_for_context(request, context),
         }
     )
     return context
@@ -464,3 +569,164 @@ def _truncate_meta_description(value: str, limit: int = 160) -> str:
     if len(normalized) <= limit:
         return normalized
     return f"{normalized[: limit - 3].rstrip()}..."
+
+
+def _organization_jsonld(request: Request, lang: str) -> dict[str, object]:
+    settings = get_settings()
+    alternate_lang = "kr" if lang == "en" else "en"
+    return {
+        "@context": "https://schema.org",
+        "@type": "ResearchOrganization",
+        "name": ORGANIZATION_NAMES.get(lang, ORGANIZATION_NAMES["en"]),
+        "alternateName": ["NLP Lab", ORGANIZATION_NAMES[alternate_lang]],
+        "url": f"{_public_base_url(request)}/",
+        "logo": _absolute_public_url(
+            request, request.url_for("static", path="images/logo.svg").path
+        ),
+        "email": settings.contact_email,
+        "address": settings.contact_address,
+        "parentOrganization": {
+            "@type": "CollegeOrUniversity",
+            "name": "Kyung Hee University",
+            "alternateName": "경희대학교",
+            "url": "https://www.khu.ac.kr",
+        },
+        "knowsAbout": [
+            "Natural Language Processing",
+            "Information Retrieval",
+            "Question Answering",
+            "Dialogue Systems",
+            "Text Mining",
+        ],
+    }
+
+
+def _members_jsonld(lang: str, members: list[Member]) -> dict[str, object]:
+    organization_name = ORGANIZATION_NAMES.get(lang, ORGANIZATION_NAMES["en"])
+    item_list_elements: list[dict[str, object]] = []
+    for position, member in enumerate(members, start=1):
+        name = (member.name_en if lang == "en" else member.name) or member.name
+        item_list_elements.append(
+            {
+                "@type": "ListItem",
+                "position": position,
+                "item": {
+                    "@type": "Person",
+                    "name": name,
+                    "jobTitle": member.role.value,
+                    "affiliation": {
+                        "@type": "ResearchOrganization",
+                        "name": organization_name,
+                    },
+                },
+            }
+        )
+    return {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": PUBLIC_SEO_TITLES["/members"].get(lang, PUBLIC_SEO_TITLES["/members"]["en"]),
+        "itemListElement": item_list_elements,
+    }
+
+
+def _publications_jsonld(lang: str, publications: list[Publication]) -> dict[str, object]:
+    item_list_elements: list[dict[str, object]] = []
+    for position, publication in enumerate(publications, start=1):
+        title = (publication.title_en if lang == "en" else publication.title) or publication.title
+        authors = (
+            publication.authors_en if lang == "en" else publication.authors
+        ) or publication.authors
+        venue = (publication.venue_en if lang == "en" else publication.venue) or publication.venue
+        article: dict[str, object] = {
+            "@type": "ScholarlyArticle",
+            "name": title,
+            "author": authors,
+            "datePublished": str(publication.year),
+            "publication": venue,
+        }
+        if publication.link:
+            article["url"] = publication.link
+        item_list_elements.append(
+            {
+                "@type": "ListItem",
+                "position": position,
+                "item": article,
+            }
+        )
+    return {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": PUBLIC_SEO_TITLES["/publications"].get(
+            lang, PUBLIC_SEO_TITLES["/publications"]["en"]
+        ),
+        "itemListElement": item_list_elements,
+    }
+
+
+def _project_jsonld(request: Request, lang: str, project: Project) -> list[dict[str, object]]:
+    title = (project.title_en if lang == "en" else project.title) or project.title
+    summary = (project.summary_en if lang == "en" else project.summary) or project.summary
+    project_url = _absolute_public_url(request, _localized_path(f"/projects/{project.slug}", lang))
+    research_project: dict[str, object] = {
+        "@context": "https://schema.org",
+        "@type": "ResearchProject",
+        "name": title,
+        "description": summary,
+        "url": project_url,
+        "parentOrganization": {
+            "@type": "ResearchOrganization",
+            "name": ORGANIZATION_NAMES.get(lang, ORGANIZATION_NAMES["en"]),
+        },
+    }
+    breadcrumbs = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home" if lang == "en" else "홈",
+                "item": _absolute_public_url(request, _localized_path("/", lang)),
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Research" if lang == "en" else "연구 분야",
+                "item": _absolute_public_url(request, _localized_path("/projects", lang)),
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": title,
+                "item": project_url,
+            },
+        ],
+    }
+    return [research_project, breadcrumbs]
+
+
+def _structured_data_for_context(
+    request: Request, context: dict[str, object]
+) -> list[dict[str, object]]:
+    lang = cast(str, context["lang"])
+    path = request.url.path
+    structured_data: list[dict[str, object]] = [_organization_jsonld(request, lang)]
+
+    if path == "/members":
+        members_value = context.get("members")
+        if isinstance(members_value, (list, tuple)):
+            members = [item for item in members_value if isinstance(item, Member)]
+            if members:
+                structured_data.append(_members_jsonld(lang, members))
+    elif path == "/publications":
+        publications_value = context.get("publications")
+        if isinstance(publications_value, (list, tuple)):
+            publications = [item for item in publications_value if isinstance(item, Publication)]
+            if publications:
+                structured_data.append(_publications_jsonld(lang, publications))
+    elif path.startswith("/projects/"):
+        project = context.get("project")
+        if isinstance(project, Project):
+            structured_data.extend(_project_jsonld(request, lang, project))
+
+    return structured_data

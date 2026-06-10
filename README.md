@@ -154,6 +154,7 @@ uv run poe serve-https
 - `CONTACT_ADDRESS`
 - `CONTACT_MAP_URL` (현재 템플릿 커스텀 지도 URL 사용으로 보조값)
 - `GOOGLE_SITE_VERIFICATION` (Google Search Console HTML 태그 인증 토큰)
+- `NAVER_SITE_VERIFICATION` (네이버 서치어드바이저 HTML 태그 인증 토큰)
 
 ## 4.1 systemd 운영 예시
 `/etc/systemd/system/nlp-lab.service`
