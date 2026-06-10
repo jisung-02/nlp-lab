@@ -10,6 +10,9 @@
     {% if meta_description is defined and meta_description %}
     <meta name="description" content="{{ meta_description }}" />
     {% endif %}
+    {% if meta_keywords is defined and meta_keywords %}
+    <meta name="keywords" content="{{ meta_keywords }}" />
+    {% endif %}
     <meta name="robots" content="{{ meta_robots | default('noindex,nofollow' if request.url.path.startswith('/admin') else 'index,follow') }}" />
     {% if canonical_url is defined and canonical_url %}
     <link rel="canonical" href="{{ canonical_url }}" />

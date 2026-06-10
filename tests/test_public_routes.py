@@ -1219,3 +1219,14 @@ def test_home_jsonld_scripts_are_valid_json(app_and_engine):
     for script in scripts:
         data = json.loads(script)
         assert data["@context"] == "https://schema.org"
+
+
+def test_home_page_renders_meta_keywords(app_and_engine):
+    app, _ = app_and_engine
+
+    status_code, _, body = _request(app, "GET", "/?lang=kr")
+
+    assert status_code == 200
+    assert '<meta name="keywords" content="' in body
+    for keyword in ("경희대학교", "소프트웨어융합대학", "인공지능학과", "자연어처리"):
+        assert keyword in body

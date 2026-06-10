@@ -121,6 +121,38 @@ RESEARCH_TOPICS = (
     "Information Extraction",
 )
 
+SEO_KEYWORDS = {
+    "kr": (
+        "경희대학교",
+        "경희대",
+        "경희대학교 국제캠퍼스",
+        "소프트웨어융합대학",
+        "컴퓨터공학부",
+        "인공지능학과",
+        "수학과",
+        "응용수학과",
+        "자연어처리",
+        "자연어처리 연구실",
+        "NLP 연구실",
+        "박성배 교수",
+        "대학원",
+        "학부연구생",
+        "인공지능",
+    ),
+    "en": (
+        "Kyung Hee University",
+        "KHU",
+        "College of Software Convergence",
+        "Department of Artificial Intelligence",
+        "Computer Science and Engineering",
+        "Natural Language Processing",
+        "NLP Lab",
+        "Seong-Bae Park",
+        "Machine Learning",
+        "Artificial Intelligence",
+    ),
+}
+
 LEGACY_PUBLIC_REDIRECTS = {
     "/index.html": "/",
     "/home": "/",
@@ -392,9 +424,14 @@ def llms_txt(
         ),
         f"- Research areas: {', '.join(RESEARCH_TOPICS)}",
         (
+            "- Affiliation: College of Software Convergence (소프트웨어융합대학) / "
+            "Department of Artificial Intelligence (인공지능학과), Kyung Hee University"
+        ),
+        (
             "- Location: College of Electronics and Information, "
             "Kyung Hee University International Campus, Yongin, Republic of Korea"
         ),
+        f"- Keywords: {', '.join(SEO_KEYWORDS['kr'] + SEO_KEYWORDS['en'])}",
         "",
         "## For Prospective Students (연구실 지원 안내)",
         "",
@@ -542,6 +579,7 @@ def _public_context(request: Request, **extra_context: object) -> dict[str, obje
         {
             "meta_description": _meta_description_for_context(request, context),
             "meta_title": _meta_title_for_context(request, context),
+            "meta_keywords": ", ".join(SEO_KEYWORDS.get(lang, SEO_KEYWORDS["en"])),
             "meta_robots": "index,follow",
             "canonical_url": _absolute_public_url(request, _replace_lang_in_query(request, lang)),
             "alternate_lang_urls": {
@@ -682,6 +720,7 @@ def _organization_jsonld(request: Request, lang: str) -> dict[str, object]:
             },
         },
         "knowsAbout": list(RESEARCH_TOPICS),
+        "keywords": ", ".join(SEO_KEYWORDS.get(lang, SEO_KEYWORDS["en"])),
     }
 
 
