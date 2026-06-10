@@ -7,3 +7,4 @@ __pycache__/
 nlp_lab.db
 .env
 .omx/
+.gstack/
