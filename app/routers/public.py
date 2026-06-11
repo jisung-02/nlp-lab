@@ -362,7 +362,11 @@ GOOGLE_SITE_VERIFICATION_FILE_CONTENT = (
 )
 
 
-@router.get(f"/{GOOGLE_SITE_VERIFICATION_FILENAME}", include_in_schema=False)
+@router.api_route(
+    f"/{GOOGLE_SITE_VERIFICATION_FILENAME}",
+    methods=["GET", "HEAD"],
+    include_in_schema=False,
+)
 def google_site_verification_file():
     return PlainTextResponse(
         GOOGLE_SITE_VERIFICATION_FILE_CONTENT,
@@ -370,7 +374,7 @@ def google_site_verification_file():
     )
 
 
-@router.get("/robots.txt", include_in_schema=False)
+@router.api_route("/robots.txt", methods=["GET", "HEAD"], include_in_schema=False)
 def robots_txt(request: Request):
     lines = [
         "User-agent: *",
@@ -396,7 +400,7 @@ def robots_txt(request: Request):
     return PlainTextResponse("\n".join(lines))
 
 
-@router.get("/llms.txt", include_in_schema=False)
+@router.api_route("/llms.txt", methods=["GET", "HEAD"], include_in_schema=False)
 def llms_txt(
     request: Request,
     session: Annotated[Session, Depends(get_session)],
@@ -495,7 +499,7 @@ def favicon(request: Request):
     )
 
 
-@router.get("/sitemap.xml", include_in_schema=False)
+@router.api_route("/sitemap.xml", methods=["GET", "HEAD"], include_in_schema=False)
 def sitemap_xml(
     request: Request,
     session: Annotated[Session, Depends(get_session)],

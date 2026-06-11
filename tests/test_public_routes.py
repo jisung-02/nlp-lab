@@ -946,6 +946,21 @@ def test_robots_txt_advertises_sitemap_and_blocks_admin(monkeypatch: pytest.Monk
     assert "Sitemap: https://lab.example.test/sitemap.xml" in body
 
 
+def test_seo_endpoints_allow_head_requests(monkeypatch: pytest.MonkeyPatch):
+    # 구글 사이트맵 수집기 등은 GET 전에 HEAD로 확인한다. GET 전용이면 405가 되어
+    # "사이트맵을 읽을 수 없음(일반 HTTP 오류)"의 원인이 된다.
+    monkeypatch.setenv("APP_DOMAIN", "lab.example.test")
+    get_settings.cache_clear()
+    app, _ = _make_test_client_app()
+
+    try:
+        for path in ("/sitemap.xml", "/robots.txt", "/llms.txt"):
+            status_code, _, _ = _request(app, "HEAD", path)
+            assert status_code == 200, path
+    finally:
+        get_settings.cache_clear()
+
+
 def test_root_favicon_redirects_to_static_asset_for_get_and_head(app_and_engine):
     app, _ = app_and_engine
 
