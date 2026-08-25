@@ -2,14 +2,15 @@
 
 set -eu
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# bash 내장 명령만 사용 (dirname 없이) — PATH가 비정상인 환경에서도 자기 위치를 찾는다.
+case "${BASH_SOURCE[0]}" in
+  */*) SCRIPT_DIR="$(cd "${BASH_SOURCE[0]%/*}" && pwd)" ;;
+  *) SCRIPT_DIR="$(pwd)" ;;
+esac
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-if [ -f "$PROJECT_ROOT/.env" ]; then
-  set -a
-  . "$PROJECT_ROOT/.env"
-  set +a
-fi
+. "$SCRIPT_DIR/load_env.sh"
+load_dotenv "$PROJECT_ROOT/.env"
 
 require_env() {
   local name="$1"

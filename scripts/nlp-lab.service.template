@@ -1,0 +1,16 @@
+[Unit]
+Description=NLP Lab HTTPS service
+After=network.target
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__PROJECT_ROOT__
+EnvironmentFile=__PROJECT_ROOT__/.env
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+ExecStart=/usr/bin/env bash -lc 'cd __PROJECT_ROOT__ && uv run poe serve-https'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

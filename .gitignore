@@ -5,6 +5,15 @@ __pycache__/
 *.pyc
 .DS_Store
 nlp_lab.db
+nlp_lab.db-wal
+nlp_lab.db-shm
+backups/
+.deploy/
 .env
+
+# 관리자가 업로드한 이미지 (기본 hero.jpg만 저장소에 포함)
+app/static/images/hero/*
+!app/static/images/hero/hero.jpg
+app/static/images/members/
 .omx/
 .gstack/

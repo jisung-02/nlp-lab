@@ -83,8 +83,45 @@ poe serve
 poe check
 ```
 
-### 3.6 운영용 HTTPS 실행
-`poe serve-https`는 Linux + systemd 운영 환경에서 단일 도메인용 HTTPS 서버를 직접 띄우는 경로입니다.
+### 3.6 운영 서버 배포 — 명령 하나로
+
+운영 서버에서 기억할 명령은 두 개입니다.
+
+```bash
+uv run poe deploy     # 평소 업데이트: 코드 받기 → 설치 → DB 백업 → 스키마 갱신 → HTTPS 인증서 → 재시작 → 확인
+uv run poe rollback   # 문제 생겼을 때: 직전 커밋 + 직전 DB 백업으로 되돌리기
+```
+
+`deploy`가 하는 일(순서대로, 하나라도 실패하면 즉시 멈추고 안내 출력):
+
+| 단계 | 내용 | DB 안전장치 |
+| --- | --- | --- |
+| 1 | `git pull --ff-only` | 서버에서 직접 고친 파일이 있으면 멈춤 |
+| 2 | `uv sync` | |
+| 3 | `backups/nlp_lab-<날짜>.db` 로 DB 백업 (최근 10개 유지) | **DB를 건드리기 전에 항상 백업** |
+| 4 | `alembic upgrade head` | 컬럼/테이블 **추가만** 하고 삭제하지 않음. Alembic 이력이 없는 옛 DB는 구조를 보고 자동으로 버전을 표시한 뒤 진행, 인식 못 하면 멈춤 |
+| 5 | 관리자 계정 확인 | 이미 있으면 그대로 둠 |
+| 6 | `scripts/ensure_https_cert.sh` — 인증서 없거나 만료 30일 이내면 발급/갱신, 갱신 후 재시작 훅 설치 | |
+| 7 | systemd 유닛(`nlp-lab.service`) 없으면 설치·enable, 있으면 restart | |
+| 8 | `https://127.0.0.1:<APP_PORT>/` 가 200을 줄 때까지 최대 30초 대기 | |
+
+기존 서버에 처음 적용할 때(1회):
+
+```bash
+cd /srv/nlp-lab
+git pull
+uv sync
+uv run poe deploy
+```
+
+전제:
+- `.env`에 `APP_ENV=production`, `APP_DOMAIN`, `TLS_ADMIN_EMAIL`, `SECRET_KEY`가 있어야 함 (6·7단계는 `APP_ENV=production`일 때만 실행)
+- 서비스 재시작과 인증서 발급을 위해 root이거나 비밀번호 없는 sudo가 필요. 일반 계정이면 `/etc/sudoers.d/nlp-lab`에 한 줄:
+  `nlplab ALL=(root) NOPASSWD: /usr/bin/systemctl, /usr/bin/tee, /usr/bin/mkdir, /usr/bin/chmod`
+- 로컬 DB(`nlp_lab.db`)와 업로드 이미지(`app/static/images/hero/*`, `members/`)는 git이 관리하지 않으므로 `git pull`로 사라지지 않음
+- 백업만 따로 하려면 `uv run poe backup-db`
+
+`poe serve-https`는 Linux + systemd 운영 환경에서 단일 도메인용 HTTPS 서버를 직접 띄우는 경로이며, `deploy`가 설치하는 systemd 유닛이 이 명령을 실행합니다.
 
 필수 `.env` 값:
 
@@ -125,6 +162,9 @@ uv run poe serve-https
 | --- | --- | --- |
 | `serve` | 개발 서버 실행 | `uv run poe serve` |
 | `serve-https` | 운영용 HTTPS 서버 실행 | `uv run poe serve-https` |
+| `deploy` | 운영 서버 업데이트 (백업→마이그레이션→인증서→재시작→확인) | `uv run poe deploy` |
+| `rollback` | 직전 배포로 되돌리기 | `uv run poe rollback` |
+| `backup-db` | DB 백업만 수행 | `uv run poe backup-db` |
 | `migrate` | 최신 마이그레이션 적용 | `uv run poe migrate` |
 | `migration` | 새 migration 생성 | `MSG="메시지" uv run poe migration` |
 | `init-admin` | 초기 관리자 생성 | `uv run poe init-admin` |
@@ -157,6 +197,8 @@ uv run poe serve-https
 - `NAVER_SITE_VERIFICATION` (네이버 서치어드바이저 HTML 태그 인증 토큰)
 
 ## 4.1 systemd 운영 예시
+`uv run poe deploy`가 유닛이 없으면 `scripts/nlp-lab.service.template`로 자동 설치합니다. 수동으로 만들 때의 참고용:
+
 `/etc/systemd/system/nlp-lab.service`
 
 ```ini
