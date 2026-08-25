@@ -19,6 +19,7 @@ from app.models.post import Post
 from app.repositories import post_repo
 from app.services import post_service
 from app.services.auth_service import get_or_create_csrf_token, validate_or_raise_csrf
+from app.services.image_service import optimize_image_bytes
 
 router = APIRouter(prefix="/admin/posts")
 
@@ -380,6 +381,8 @@ def _save_hero_image_files(
             if len(content) > _MAX_HERO_IMAGE_BYTES:
                 _cleanup_hero_image_files(saved_paths)
                 return [], "이미지 파일 용량은 8MB를 초과할 수 없습니다."
+
+            content = optimize_image_bytes(content)
 
             file_name = _make_unique_hero_image_filename(hero_image_file.filename)
             target_path = _HERO_IMAGE_DIR / file_name

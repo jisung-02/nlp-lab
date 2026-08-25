@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.gzip import GZipMiddleware
 
 from app.core.config import get_settings
 from app.routers.admin_auth import router as admin_auth_router
@@ -24,9 +25,25 @@ TEMPLATES_DIR = BASE_DIR / "templates"
 SESSION_COOKIE_NAME = "nlp_lab_session"
 
 
+class CachedStaticFiles(StaticFiles):
+    """Serves /static with a bounded browser cache.
+
+    Uploaded files keep their original filename instead of a content
+    hash, so an admin replacing an image can reuse the same URL. A long
+    "immutable" cache would then serve stale bytes; a 1-hour window with
+    revalidation keeps repeat page loads fast without that risk.
+    """
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "public, max-age=3600, must-revalidate"
+        return response
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name, debug=settings.app_debug)
+    app.add_middleware(GZipMiddleware, minimum_size=1024)  # ty: ignore[invalid-argument-type]
 
     @app.middleware("http")
     async def session_and_admin_guard(request: Request, call_next):
@@ -64,7 +81,7 @@ def create_app() -> FastAPI:
             )
         return response
 
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    app.mount("/static", CachedStaticFiles(directory=str(STATIC_DIR)), name="static")
     app.state.templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     app.include_router(public_router)
     app.include_router(admin_auth_router)

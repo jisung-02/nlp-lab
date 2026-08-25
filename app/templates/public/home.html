@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block title %}{{ meta_title }}{% endblock %}
 {% block body_class %}public-page public-home{% endblock %}
+{% block extra_head %}
+{{ super() }}
+{% if hero_images %}
+<link rel="preload" as="image" href="{{ hero_images[0] }}" fetchpriority="high" />
+{% endif %}
+{% endblock %}
 {% block content %}
 <section class="hero" id="top">
   <div class="container hero-inner">
@@ -26,7 +32,11 @@
         <div id="hero-slideshow" class="hero-slides">
           {% for hero_image_url in hero_images %}
           <article class="hero-slide {% if loop.first %}is-active{% endif %}" data-index="{{ loop.index0 }}">
-            <img src="{{ hero_image_url }}" alt="{% if is_en %}Lab scene {{ loop.index }}{% else %}연구실 이미지 {{ loop.index }}{% endif %}" loading="lazy" />
+            {% if loop.first %}
+            <img src="{{ hero_image_url }}" alt="{% if is_en %}Lab scene {{ loop.index }}{% else %}연구실 이미지 {{ loop.index }}{% endif %}" loading="eager" fetchpriority="high" decoding="async" />
+            {% else %}
+            <img src="{{ hero_image_url }}" alt="{% if is_en %}Lab scene {{ loop.index }}{% else %}연구실 이미지 {{ loop.index }}{% endif %}" loading="lazy" decoding="async" />
+            {% endif %}
             <span class="sr-only">{{ hero_image_url }}</span>
           </article>
           {% endfor %}

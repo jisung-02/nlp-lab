@@ -18,6 +18,7 @@ from app.core.constants import MemberRole
 from app.db.session import get_session
 from app.services import member_service
 from app.services.auth_service import get_or_create_csrf_token, validate_or_raise_csrf
+from app.services.image_service import optimize_image_bytes
 
 router = APIRouter(prefix="/admin/members")
 
@@ -29,6 +30,7 @@ _ALLOWED_MEMBER_PHOTO_EXTENSIONS = {
     ".webp",
 }
 _MAX_MEMBER_PHOTO_BYTES = 8 * 1024 * 1024
+_MEMBER_PHOTO_MAX_DIMENSION = 800
 _MEMBER_PHOTO_DIR = Path(__file__).resolve().parents[1] / "static" / "images" / "members"
 _MEMBER_PHOTO_WEB_PATH = "/static/images/members"
 
@@ -241,6 +243,8 @@ def _save_member_photo_file(photo_file: UploadFile) -> tuple[str | None, str | N
         return None, "빈 이미지 파일은 업로드할 수 없습니다."
     if len(content) > _MAX_MEMBER_PHOTO_BYTES:
         return None, "이미지 파일 용량은 8MB를 초과할 수 없습니다."
+
+    content = optimize_image_bytes(content, max_dimension=_MEMBER_PHOTO_MAX_DIMENSION)
 
     _MEMBER_PHOTO_DIR.mkdir(parents=True, exist_ok=True)
     file_name = _make_unique_member_photo_filename(photo_file.filename)
