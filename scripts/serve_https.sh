@@ -37,8 +37,14 @@ fi
 
 bash "$SCRIPT_DIR/ensure_https_cert.sh"
 
+# Multiple worker processes let one slow request (e.g. an admin image
+# upload being resized) run alongside public page loads. SQLite runs in
+# WAL mode, so concurrent readers across workers are safe.
+UVICORN_WORKERS="${UVICORN_WORKERS:-2}"
+
 exec uv run uvicorn app.main:app \
   --host "$APP_HOST" \
   --port "$APP_PORT" \
+  --workers "$UVICORN_WORKERS" \
   --ssl-certfile "$CERT_PATH" \
   --ssl-keyfile "$KEY_PATH"

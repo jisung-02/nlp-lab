@@ -559,12 +559,16 @@ def _render_public_template(
 ):
     templates = cast(Jinja2Templates, request.app.state.templates)
     response = templates.TemplateResponse(request, template_name, context)
-    response.set_cookie(
-        key=PUBLIC_LANG_COOKIE_NAME,
-        value=cast(str, context["lang"]),
-        max_age=60 * 60 * 24 * 365,
-        samesite="lax",
-    )
+    lang = cast(str, context["lang"])
+    if request.cookies.get(PUBLIC_LANG_COOKIE_NAME) != lang:
+        # Re-sending an unchanged cookie on every page only adds header
+        # bytes; the browser already holds it for a year.
+        response.set_cookie(
+            key=PUBLIC_LANG_COOKIE_NAME,
+            value=lang,
+            max_age=60 * 60 * 24 * 365,
+            samesite="lax",
+        )
     return response
 
 

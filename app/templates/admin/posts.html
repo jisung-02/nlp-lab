@@ -3,10 +3,10 @@
 {% block title %}Admin Posts{% endblock %}
 {% block body_class %}admin-page{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{{ url_for('static', path='css/admin.css') }}" />
+<link rel="stylesheet" href="{{ static_url('css/admin.css') }}" />
 {% endblock %}
 {% block scripts %}
-<script src="{{ url_for('static', path='js/admin_forms.js') }}" defer></script>
+<script src="{{ static_url('js/admin_forms.js') }}" defer></script>
 {% endblock %}
 {% block content %}
 <div class="admin-layout">

@@ -7,7 +7,8 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlmodel import Session, select
+from sqlalchemy import func
+from sqlmodel import Session, SQLModel, select
 
 from app.db.session import get_session
 from app.models.member import Member
@@ -79,10 +80,10 @@ def logout(request: Request, csrf_token: Annotated[str, Form()]):
 @router.get("")
 def dashboard(request: Request, session: Annotated[Session, Depends(get_session)]):
     csrf_token = get_or_create_csrf_token(request)
-    member_count = len(session.exec(select(Member.id)).all())
-    project_count = len(session.exec(select(Project.id)).all())
-    publication_count = len(session.exec(select(Publication.id)).all())
-    post_count = len(session.exec(select(Post.id)).all())
+    member_count = _count_rows(session, Member)
+    project_count = _count_rows(session, Project)
+    publication_count = _count_rows(session, Publication)
+    post_count = _count_rows(session, Post)
     templates = cast(Jinja2Templates, request.app.state.templates)
     return templates.TemplateResponse(
         request,
@@ -96,6 +97,12 @@ def dashboard(request: Request, session: Annotated[Session, Depends(get_session)
             "post_count": post_count,
         },
     )
+
+
+def _count_rows(session: Session, model: type[SQLModel]) -> int:
+    """Count rows in the database instead of loading every id into Python."""
+
+    return session.exec(select(func.count()).select_from(model)).one()
 
 
 def _render_login_page(
