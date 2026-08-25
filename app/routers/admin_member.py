@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
+from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 
 from app.core.constants import MemberRole
@@ -57,7 +58,7 @@ async def create_member(
     validate_or_raise_csrf(request, csrf_token)
 
     photo_file = _extract_member_photo_file(await request.form())
-    resolved_photo_url, upload_error = _resolve_member_photo_url(
+    resolved_photo_url, upload_error = await _resolve_member_photo_url(
         photo_url=photo_url,
         photo_file=photo_file,
     )
@@ -117,7 +118,7 @@ async def update_member(
     validate_or_raise_csrf(request, csrf_token)
 
     photo_file = _extract_member_photo_file(await request.form())
-    resolved_photo_url, upload_error = _resolve_member_photo_url(
+    resolved_photo_url, upload_error = await _resolve_member_photo_url(
         photo_url=photo_url,
         photo_file=photo_file,
     )
@@ -212,7 +213,7 @@ def _extract_member_photo_file(form_data: Mapping[str, object]) -> UploadFile | 
     return uploaded_file
 
 
-def _resolve_member_photo_url(
+async def _resolve_member_photo_url(
     *,
     photo_url: str | None,
     photo_file: UploadFile | None,
@@ -224,7 +225,9 @@ def _resolve_member_photo_url(
     if photo_file is None:
         return normalized_photo_url, None
 
-    uploaded_photo_url, error_message = _save_member_photo_file(photo_file)
+    # Reading, resizing (Pillow) and writing the photo is blocking CPU/disk
+    # work; run it off the event loop so other requests keep being served.
+    uploaded_photo_url, error_message = await run_in_threadpool(_save_member_photo_file, photo_file)
     if error_message is not None:
         return None, error_message
     return uploaded_photo_url, None
