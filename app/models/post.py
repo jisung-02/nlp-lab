@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, String, text
+from sqlalchemy import Boolean, Column, DateTime, Index, String, text
 from sqlmodel import Field, SQLModel
 
 from app.core.constants import utcnow
@@ -14,6 +14,7 @@ class Post(SQLModel, table=True):
     """News post table."""
 
     __tablename__ = "post"
+    __table_args__ = (Index("ix_post_published_created", "is_published", "created_at"),)
 
     id: int | None = Field(default=None, primary_key=True)
     title: str = Field(sa_column=Column(String(200), nullable=False))

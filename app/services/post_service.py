@@ -119,16 +119,8 @@ def parse_home_hero_image_urls(raw_content: str | None) -> list[str]:
     if raw_content is None:
         return []
 
-    lines = [line.strip() for line in raw_content.splitlines()]
-    if lines:
-        normalized_urls = [_normalize_home_hero_image_url(line) for line in lines]
-        return [url for url in normalized_urls if url is not None]
-
-    single_line = _normalize_home_hero_image_url(raw_content.strip())
-    if single_line is None:
-        return []
-
-    return [single_line]
+    normalized_urls = [_normalize_home_hero_image_url(line) for line in raw_content.splitlines()]
+    return [url for url in normalized_urls if url is not None]
 
 
 def _normalize_home_hero_image_url(raw_url: str) -> str | None:

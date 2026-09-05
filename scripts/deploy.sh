@@ -2,9 +2,9 @@
 #
 # 운영 서버 배포 스크립트 — `uv run poe deploy` 한 줄로 실행합니다.
 #
-#   1. 코드 받기          git pull --ff-only
-#   2. 라이브러리 설치    uv sync
-#   3. DB 백업            backups/nlp_lab-<날짜>.db
+#   1. 코드 상태 확인
+#   2. DB 백업 및 롤백 지점 기록
+#   3. 코드 받기 및 라이브러리 설치
 #   4. DB 스키마 갱신     alembic upgrade head (추가만 하고 삭제하지 않음)
 #   5. 관리자 계정 확인   없을 때만 생성
 #   6. HTTPS 인증서 확인  없거나 만료가 가까우면 발급/갱신
@@ -12,7 +12,7 @@
 #   8. 동작 확인          https://127.0.0.1:<APP_PORT>/ 응답 확인
 #
 # 어느 단계에서든 실패하면 즉시 멈추고, 되돌리는 방법을 안내합니다.
-# DB는 3번에서 백업한 뒤에만 건드리며, 스키마 변경은 컬럼/테이블 추가만 합니다.
+# DB는 2번에서 백업한 뒤에만 건드리며, 스키마 변경은 컬럼/테이블 추가만 합니다.
 
 set -euo pipefail
 
@@ -69,39 +69,47 @@ run_privileged() {
 }
 
 mkdir -p "$DEPLOY_STATE_DIR"
+mkdir "$DEPLOY_STATE_DIR/lock" 2>/dev/null || fail "다른 배포 또는 롤백이 진행 중입니다."
+trap 'rmdir "$DEPLOY_STATE_DIR/lock"' EXIT
 
-# ---------------------------------------------------------------- 1. 코드
-step 1 "코드 받는 중 (git pull --ff-only)"
-if [ "${SKIP_GIT_PULL:-0}" = "1" ]; then
-  echo "SKIP_GIT_PULL=1 → 건너뜀"
-elif git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+# ---------------------------------------------------------------- 1. 확인
+step 1 "배포 전 코드 상태 확인"
+PREVIOUS_COMMIT=""
+DEPLOY_BRANCH=""
+if [ "${SKIP_GIT_PULL:-0}" != "1" ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   if ! git symbolic-ref -q HEAD >/dev/null 2>&1; then
     fail "브랜치가 아닌 상태(detached HEAD)입니다. 'git checkout main' 후 다시 실행하세요."
   fi
-  git rev-parse HEAD > "$DEPLOY_STATE_DIR/previous_commit"
-  git rev-parse --abbrev-ref HEAD > "$DEPLOY_STATE_DIR/branch"
   if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
     fail "서버에서 직접 수정된 파일이 있어 업데이트할 수 없습니다. 'git status'로 확인 후 'git stash'로 치워두세요."
   fi
-  git pull --ff-only || fail "코드를 받아오지 못했습니다. 네트워크 또는 저장소 권한을 확인하세요."
-  echo "현재 버전: $(git rev-parse --short HEAD)  ($(git log -1 --format=%s))"
-else
-  echo "git 저장소가 아니라서 건너뜀"
+  PREVIOUS_COMMIT="$(git rev-parse HEAD)"
+  DEPLOY_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 fi
 
-# ---------------------------------------------------------------- 2. 의존성
-step 2 "라이브러리 설치 (uv sync)"
-uv sync || fail "라이브러리 설치에 실패했습니다."
-
-# ---------------------------------------------------------------- 3. 백업
-step 3 "DB 백업"
-BACKUP_PATH="$(uv run python -m app.db.maintenance backup)" || fail "DB 백업에 실패했습니다. DB는 건드리지 않았습니다."
+# ---------------------------------------------------------------- 2. 백업
+step 2 "DB 백업 및 롤백 지점 기록"
+BACKUP_PATH="$(uv run python -m app.db.maintenance backup)" || fail "DB 백업에 실패했습니다. 코드는 변경하지 않았습니다."
 if [ -n "$BACKUP_PATH" ]; then
   echo "백업 파일: $BACKUP_PATH"
-  echo "$BACKUP_PATH" > "$DEPLOY_STATE_DIR/last_backup"
 else
-  echo "SQLite가 아니라서 자동 백업을 건너뜀 (DB 서버 쪽 백업을 별도로 확인하세요)"
+  echo "백업할 SQLite 파일 없음 (다른 DB는 별도 백업 필요)"
 fi
+if [ -n "$PREVIOUS_COMMIT" ]; then
+  # One atomic rename publishes the matching code/DB pair, before either changes.
+  printf '%s\n' "$PREVIOUS_COMMIT" "$DEPLOY_BRANCH" "$BACKUP_PATH" > "$DEPLOY_STATE_DIR/rollback-state.tmp"
+  mv "$DEPLOY_STATE_DIR/rollback-state.tmp" "$DEPLOY_STATE_DIR/rollback-state"
+fi
+
+# ---------------------------------------------------------------- 3. 코드/의존성
+step 3 "코드 받기 및 라이브러리 설치"
+if [ -n "$PREVIOUS_COMMIT" ]; then
+  git pull --ff-only || fail "코드를 받아오지 못했습니다. 네트워크 또는 저장소 권한을 확인하세요."
+  echo "현재 버전: $(git rev-parse --short HEAD)"
+else
+  echo "git 업데이트 건너뜀"
+fi
+uv sync --locked || fail "라이브러리 설치에 실패했습니다."
 
 # ---------------------------------------------------------------- 4. 마이그레이션
 step 4 "DB 스키마 갱신 (alembic upgrade head)"

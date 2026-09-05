@@ -38,7 +38,7 @@ FastAPI + Jinja2 + SQLModel 기반의 연구실 소개/관리 웹사이트입니
 - SQLModel `>=0.0.22,<0.1`
 - SQLAlchemy `>=2.0.37,<2.1`
 - Alembic `>=1.14,<1.15`
-- passlib[bcrypt] `>=1.7.4,<1.8`
+- bcrypt `>=5,<6`
 - pydantic-settings `>=2.7,<2.8`
 - Dev: uv, ruff, ty, pytest
 
@@ -75,6 +75,9 @@ uv run uvicorn app.main:app --reload
 uv run poe serve
 ```
 
+`serve`는 개발 서버를 시작하기 전에 DB 백업, 최신 마이그레이션 적용,
+초기 관리자 확인을 순서대로 실행합니다.
+
 가상환경(`source .venv/bin/activate`)이 이미 활성화된 경우에는 `uv run`을 생략하고
 `poe <task>` 형태로 바로 실행해도 됩니다.
 
@@ -96,9 +99,9 @@ uv run poe rollback   # 문제 생겼을 때: 직전 커밋 + 직전 DB 백업�
 
 | 단계 | 내용 | DB 안전장치 |
 | --- | --- | --- |
-| 1 | `git pull --ff-only` | 서버에서 직접 고친 파일이 있으면 멈춤 |
-| 2 | `uv sync` | |
-| 3 | `backups/nlp_lab-<날짜>.db` 로 DB 백업 (최근 10개 유지) | **DB를 건드리기 전에 항상 백업** |
+| 1 | 배포 전 브랜치와 working tree 상태 확인 | 서버에서 직접 고친 파일이 있으면 멈춤 |
+| 2 | DB 백업 후 `.deploy/rollback-state`를 원자적으로 기록 | **pull 전에 코드/DB 롤백 지점을 함께 저장** |
+| 3 | `git pull --ff-only` 후 `uv sync --locked` | |
 | 4 | `alembic upgrade head` | 컬럼/테이블 **추가만** 하고 삭제하지 않음. Alembic 이력이 없는 옛 DB는 구조를 보고 자동으로 버전을 표시한 뒤 진행, 인식 못 하면 멈춤 |
 | 5 | 관리자 계정 확인 | 이미 있으면 그대로 둠 |
 | 6 | `scripts/ensure_https_cert.sh` — 인증서 없거나 만료 30일 이내면 발급/갱신, 갱신 후 재시작 훅 설치 | |
@@ -109,10 +112,10 @@ uv run poe rollback   # 문제 생겼을 때: 직전 커밋 + 직전 DB 백업�
 
 ```bash
 cd /srv/nlp-lab
-git pull
-uv sync
 uv run poe deploy
 ```
+
+`deploy`가 working tree 확인, DB 백업과 `.deploy/rollback-state` 기록, `git pull --ff-only`, `uv sync --locked`를 이 순서로 처리합니다. 수동으로 준비해야 한다면 먼저 clean state를 확인하고 DB 백업과 롤백 상태를 기록한 뒤 pull 하세요.
 
 전제:
 - `.env`에 `APP_ENV=production`, `APP_DOMAIN`, `TLS_ADMIN_EMAIL`, `SECRET_KEY`가 있어야 함 (6·7단계는 `APP_ENV=production`일 때만 실행)
@@ -127,12 +130,24 @@ uv run poe deploy
 
 ```bash
 APP_ENV=production
+APP_DEBUG=false
 APP_HOST=0.0.0.0
 APP_PORT=443
 APP_DOMAIN=lab.example.ac.kr
 TLS_ADMIN_EMAIL=admin@example.com
-SECRET_KEY=change-me
+SECRET_KEY=replace-with-a-random-secret-at-least-32-characters-long
+ADMIN_PASSWORD=replace-with-a-unique-production-password
 ```
+
+운영 환경에서는 `SECRET_KEY`를 32자 이상으로 설정하고 기본값을 사용하지 마세요. 다음처럼 생성할 수 있습니다.
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+`ADMIN_PASSWORD`도 반드시 고유한 운영용 비밀번호로 바꾸고, `APP_DEBUG=false`를 권장합니다.
+
+`uv run poe deploy`와 `uv run poe serve`는 관리자 세션 저장소를 포함한 최신 마이그레이션을 자동 적용합니다. Uvicorn을 직접 실행할 때만 먼저 `uv run alembic upgrade head`를 실행하세요. 새 세션 방식에서는 기존 관리자 쿠키가 무효화되므로 관리자가 한 번 다시 로그인해야 합니다.
 
 실행:
 
@@ -160,7 +175,7 @@ uv run poe serve-https
 
 | Task | 설명 | 명령 |
 | --- | --- | --- |
-| `serve` | 개발 서버 실행 | `uv run poe serve` |
+| `serve` | DB 준비 후 개발 서버 실행 | `uv run poe serve` |
 | `serve-https` | 운영용 HTTPS 서버 실행 | `uv run poe serve-https` |
 | `deploy` | 운영 서버 업데이트 (백업→마이그레이션→인증서→재시작→확인) | `uv run poe deploy` |
 | `rollback` | 직전 배포로 되돌리기 | `uv run poe rollback` |
@@ -192,7 +207,6 @@ uv run poe serve-https
 - `ADMIN_SESSION_MAX_AGE_SECONDS`
 - `CONTACT_EMAIL`
 - `CONTACT_ADDRESS`
-- `CONTACT_MAP_URL` (현재 템플릿 커스텀 지도 URL 사용으로 보조값)
 - `GOOGLE_SITE_VERIFICATION` (Google Search Console HTML 태그 인증 토큰)
 - `NAVER_SITE_VERIFICATION` (네이버 서치어드바이저 HTML 태그 인증 토큰)
 

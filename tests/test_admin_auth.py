@@ -1,154 +1,23 @@
 from __future__ import annotations
 
-import asyncio
-import re
 from datetime import date
-from http.cookies import SimpleCookie
-from urllib.parse import urlencode
 
 import pytest
-from fastapi import FastAPI
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, SQLModel, create_engine
-from starlette.types import Message, Receive, Scope, Send
+from sqlmodel import Session
 
 from app.core.config import get_settings
 from app.core.constants import MemberRole, ProjectStatus
 from app.core.security import hash_password
-from app.db.session import get_session
 from app.main import create_app
 from app.models.admin_user import AdminUser
 from app.models.member import Member
 from app.models.post import Post
 from app.models.project import Project
 from app.models.publication import Publication
-
-
-def _header_value(headers: list[tuple[str, str]], name: str) -> str | None:
-    for key, value in headers:
-        if key.lower() == name.lower():
-            return value
-    return None
-
-
-def _update_cookie_jar(cookie_jar: dict[str, str], headers: list[tuple[str, str]]) -> None:
-    for key, value in headers:
-        if key.lower() != "set-cookie":
-            continue
-        parsed_cookie = SimpleCookie()
-        parsed_cookie.load(value)
-        for morsel in parsed_cookie.values():
-            cookie_jar[morsel.key] = morsel.value
-
-
-def _extract_csrf_token(body: str) -> str:
-    match = re.search(r'name="csrf_token" value="([^"]+)"', body)
-    assert match is not None
-    return match.group(1)
-
-
-def _request(
-    app: FastAPI,
-    method: str,
-    path: str,
-    *,
-    form: dict[str, str] | None = None,
-    cookies: dict[str, str] | None = None,
-) -> tuple[int, list[tuple[str, str]], str]:
-    headers: list[tuple[bytes, bytes]] = [(b"host", b"testserver")]
-    request_body = b""
-
-    if cookies:
-        cookie_header = "; ".join(f"{name}={value}" for name, value in cookies.items())
-        headers.append((b"cookie", cookie_header.encode("utf-8")))
-
-    if form is not None:
-        request_body = urlencode(form).encode("utf-8")
-        headers.extend(
-            [
-                (b"content-type", b"application/x-www-form-urlencoded"),
-                (b"content-length", str(len(request_body)).encode("utf-8")),
-            ]
-        )
-    else:
-        headers.append((b"content-length", b"0"))
-
-    scope: Scope = {
-        "type": "http",
-        "asgi": {"version": "3.0", "spec_version": "2.3"},
-        "http_version": "1.1",
-        "method": method.upper(),
-        "scheme": "http",
-        "path": path,
-        "raw_path": path.encode("utf-8"),
-        "query_string": b"",
-        "headers": headers,
-        "client": ("testclient", 50000),
-        "server": ("testserver", 80),
-        "root_path": "",
-    }
-
-    sent = False
-
-    async def receive() -> Message:
-        nonlocal sent
-        if sent:
-            return {"type": "http.request", "body": b"", "more_body": False}
-        sent = True
-        return {"type": "http.request", "body": request_body, "more_body": False}
-
-    messages: list[Message] = []
-
-    async def send(message: Message) -> None:
-        messages.append(message)
-
-    receive_fn: Receive = receive
-    send_fn: Send = send
-    asyncio.run(app(scope, receive_fn, send_fn))
-
-    status_code = 500
-    response_headers: list[tuple[str, str]] = []
-    body = b""
-    for message in messages:
-        if message["type"] == "http.response.start":
-            status_code = message["status"]
-            response_headers = [
-                (key.decode("latin-1"), value.decode("latin-1"))
-                for key, value in message.get("headers", [])
-            ]
-        if message["type"] == "http.response.body":
-            body += message.get("body", b"")
-
-    return status_code, response_headers, body.decode("utf-8", errors="ignore")
-
-
-@pytest.fixture
-def app_and_engine():
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(engine)
-
-    with Session(engine) as session:
-        session.add(
-            AdminUser(
-                username="admin",
-                password_hash=hash_password("test-password"),
-            )
-        )
-        session.commit()
-
-    app = create_app()
-
-    def override_get_session():
-        with Session(engine) as session:
-            yield session
-
-    app.dependency_overrides[get_session] = override_get_session
-
-    return app, engine
+from tests.helpers import extract_csrf_token as _extract_csrf_token
+from tests.helpers import header_value as _header_value
+from tests.helpers import request as _request
+from tests.helpers import update_cookie_jar as _update_cookie_jar
 
 
 def test_unauthenticated_admin_access_redirects_to_login(app_and_engine):
@@ -175,6 +44,8 @@ def test_login_page_sets_session_cookie_with_required_options(app_and_engine):
 
 def test_login_page_sets_secure_session_cookie_in_production(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("SECRET_KEY", "test-key-" * 8)
+    monkeypatch.setenv("ADMIN_PASSWORD", "a-real-test-password")
     get_settings.cache_clear()
     app = create_app()
 
@@ -363,3 +234,87 @@ def test_login_rejects_missing_csrf(app_and_engine):
     )
 
     assert status_code == 422
+
+
+def _login_cookies(app):
+    from fastapi.testclient import TestClient
+
+    client = TestClient(app, follow_redirects=False)
+    token = _extract_csrf_token(client.get("/admin/login").text)
+    assert (
+        client.post(
+            "/admin/login",
+            data={
+                "username": "admin",
+                "password": "test-password",
+                "csrf_token": token,
+            },
+        ).status_code
+        == 303
+    )
+    return client
+
+
+def test_old_cookie_is_rejected_after_logout_expiry_password_change_and_account_deletion(
+    app_and_engine,
+):
+    from sqlmodel import select
+
+    from app.models.admin_session import AdminSession
+
+    app, engine = app_and_engine
+    client = _login_cookies(app)
+    stolen = client.cookies.get("nlp_lab_session")
+    token = _extract_csrf_token(client.get("/admin").text)
+    assert client.post("/admin/logout", data={"csrf_token": token}).status_code == 303
+    assert client.get("/admin", headers={"Cookie": f"nlp_lab_session={stolen}"}).status_code == 303
+
+    for change in ("expiry", "password", "delete"):
+        client = _login_cookies(app)
+        with Session(engine) as session:
+            if change == "expiry":
+                for login_session in session.exec(select(AdminSession)).all():
+                    login_session.expires_at = 0
+                    session.add(login_session)
+            else:
+                admin = session.exec(select(AdminUser)).one()
+                if change == "password":
+                    admin.password_hash = hash_password("test-password")
+                    session.add(admin)
+                else:
+                    session.delete(admin)
+            session.commit()
+        for path in (
+            "/admin",
+            "/admin/members",
+            "/admin/projects",
+            "/admin/publications",
+            "/admin/posts",
+        ):
+            assert client.get(path).status_code == 303
+
+
+def test_production_rejects_default_credentials():
+    from pydantic import ValidationError
+
+    from app.core.config import Settings
+
+    with pytest.raises(ValidationError):
+        Settings(app_env="production")
+    with pytest.raises(ValidationError):
+        Settings(app_env="production", secret_key="x" * 32)
+    Settings(app_env="production", secret_key="x" * 32, admin_password="custom")
+
+
+def test_expired_signed_cookie_and_missing_admin_cannot_authenticate(app_and_engine):
+    import time
+
+    from app.services.auth_service import decode_session_cookie, encode_session_cookie
+
+    secret = get_settings().secret_key
+    cookie = encode_session_cookie(secret, {"admin_user_id": 1, "expires_at": int(time.time()) - 1})
+    assert decode_session_cookie(secret, cookie) == {}
+    app, _ = app_and_engine
+    cookie = encode_session_cookie(secret, {"admin_user_id": 999999})
+    status, _, _ = _request(app, "GET", "/admin", cookies={"nlp_lab_session": cookie})
+    assert status == 303

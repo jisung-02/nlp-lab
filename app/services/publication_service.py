@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlmodel import Session
 
 from app.models.project import Project
@@ -27,29 +27,18 @@ def parse_publication_create_input(
 ) -> PublicationCreateInput | None:
     """Return validated create payload or ``None``."""
 
-    fallback_title = title_en.strip() if isinstance(title_en, str) else ""
-    fallback_authors = authors_en.strip() if isinstance(authors_en, str) else ""
-    fallback_venue = venue_en.strip() if isinstance(venue_en, str) else ""
-    resolved_title = title.strip() or fallback_title
-    resolved_authors = authors.strip() or fallback_authors
-    resolved_venue = venue.strip() or fallback_venue
-
-    try:
-        return PublicationCreateInput.model_validate(
-            {
-                "title": resolved_title,
-                "title_en": title_en,
-                "authors": resolved_authors,
-                "authors_en": authors_en,
-                "venue": resolved_venue,
-                "venue_en": venue_en,
-                "year": year,
-                "link": link,
-                "related_project_id": related_project_id,
-            }
-        )
-    except ValidationError:
-        return None
+    return _parse_publication_input(
+        PublicationCreateInput,
+        title=title,
+        title_en=title_en,
+        authors=authors,
+        authors_en=authors_en,
+        venue=venue,
+        venue_en=venue_en,
+        year=year,
+        link=link,
+        related_project_id=related_project_id,
+    )
 
 
 def parse_publication_update_input(
@@ -66,21 +55,44 @@ def parse_publication_update_input(
 ) -> PublicationUpdateInput | None:
     """Return validated update payload or ``None``."""
 
+    return _parse_publication_input(
+        PublicationUpdateInput,
+        title=title,
+        title_en=title_en,
+        authors=authors,
+        authors_en=authors_en,
+        venue=venue,
+        venue_en=venue_en,
+        year=year,
+        link=link,
+        related_project_id=related_project_id,
+    )
+
+
+def _parse_publication_input[TInputModel: BaseModel](
+    model_class: type[TInputModel],
+    *,
+    title: str,
+    title_en: str | None,
+    authors: str,
+    authors_en: str | None,
+    venue: str,
+    venue_en: str | None,
+    year: str,
+    link: str | None,
+    related_project_id: str | None,
+) -> TInputModel | None:
     fallback_title = title_en.strip() if isinstance(title_en, str) else ""
     fallback_authors = authors_en.strip() if isinstance(authors_en, str) else ""
     fallback_venue = venue_en.strip() if isinstance(venue_en, str) else ""
-    resolved_title = title.strip() or fallback_title
-    resolved_authors = authors.strip() or fallback_authors
-    resolved_venue = venue.strip() or fallback_venue
-
     try:
-        return PublicationUpdateInput.model_validate(
+        return model_class.model_validate(
             {
-                "title": resolved_title,
+                "title": title.strip() or fallback_title,
                 "title_en": title_en,
-                "authors": resolved_authors,
+                "authors": authors.strip() or fallback_authors,
                 "authors_en": authors_en,
-                "venue": resolved_venue,
+                "venue": venue.strip() or fallback_venue,
                 "venue_en": venue_en,
                 "year": year,
                 "link": link,

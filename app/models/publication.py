@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy import Column, DateTime, Index, Integer, String
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.core.constants import utcnow
@@ -16,6 +16,7 @@ class Publication(SQLModel, table=True):
     """Research publication table."""
 
     __tablename__ = "publication"
+    __table_args__ = (Index("ix_publication_project_year", "related_project_id", "year", "id"),)
 
     id: int | None = Field(default=None, primary_key=True)
     title: str = Field(sa_column=Column(String(300), nullable=False))

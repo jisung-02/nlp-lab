@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
@@ -8,7 +7,6 @@ from fastapi import FastAPI, HTTPException
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 from starlette.requests import Request
-from starlette.types import Message, Receive, Scope, Send
 
 from app.core.config import get_settings
 from app.core.constants import HOME_HERO_IMAGE_POST_SLUG, MemberRole, ProjectStatus
@@ -26,6 +24,8 @@ from app.routers.public import (
     projects_page,
     publications_page,
 )
+from tests.helpers import header_value as _header_value
+from tests.helpers import request as _request
 
 
 def _dt(hours: int) -> datetime:
@@ -48,68 +48,6 @@ def _make_request(app: FastAPI, path: str, query_string: str = "") -> Request:
         "app": app,
     }
     return Request(scope)
-
-
-def _header_value(headers: list[tuple[str, str]], name: str) -> str | None:
-    for key, value in headers:
-        if key.lower() == name.lower():
-            return value
-    return None
-
-
-def _request(app: FastAPI, method: str, path: str) -> tuple[int, list[tuple[str, str]], str]:
-    route_path, _, query_string = path.partition("?")
-    headers: list[tuple[bytes, bytes]] = [
-        (b"host", b"testserver"),
-        (b"content-length", b"0"),
-    ]
-    scope: Scope = {
-        "type": "http",
-        "asgi": {"version": "3.0", "spec_version": "2.3"},
-        "http_version": "1.1",
-        "method": method.upper(),
-        "scheme": "http",
-        "path": route_path,
-        "raw_path": route_path.encode("utf-8"),
-        "query_string": query_string.encode("utf-8"),
-        "headers": headers,
-        "client": ("testclient", 50000),
-        "server": ("testserver", 80),
-        "root_path": "",
-    }
-
-    sent = False
-
-    async def receive() -> Message:
-        nonlocal sent
-        if sent:
-            return {"type": "http.request", "body": b"", "more_body": False}
-        sent = True
-        return {"type": "http.request", "body": b"", "more_body": False}
-
-    messages: list[Message] = []
-
-    async def send(message: Message) -> None:
-        messages.append(message)
-
-    receive_fn: Receive = receive
-    send_fn: Send = send
-    asyncio.run(app(scope, receive_fn, send_fn))
-
-    status_code = 500
-    response_headers: list[tuple[str, str]] = []
-    body = b""
-    for message in messages:
-        if message["type"] == "http.response.start":
-            status_code = message["status"]
-            response_headers = [
-                (key.decode("latin-1"), value.decode("latin-1"))
-                for key, value in message.get("headers", [])
-            ]
-        if message["type"] == "http.response.body":
-            body += message.get("body", b"")
-
-    return status_code, response_headers, body.decode("utf-8", errors="ignore")
 
 
 def _use_test_engine(app: FastAPI, engine) -> None:
@@ -252,7 +190,6 @@ def test_public_routes_support_en_language_query(app_and_engine):
 
 
 def test_members_page_displays_language_specific_name_and_bio_with_fallback(app_and_engine):
-    pytest.importorskip("httpx")
     from fastapi.testclient import TestClient
 
     app, engine = app_and_engine
@@ -299,7 +236,7 @@ def test_members_page_displays_language_specific_name_and_bio_with_fallback(app_
         )
         session.commit()
 
-    client = TestClient(app)
+    client = TestClient(app, follow_redirects=False)
 
     ko_response = client.get("/members?lang=kr")
     assert ko_response.status_code == 200
@@ -320,7 +257,6 @@ def test_members_page_displays_language_specific_name_and_bio_with_fallback(app_
 
 
 def test_project_publication_post_pages_display_language_content_with_fallback(app_and_engine):
-    pytest.importorskip("httpx")
     from fastapi.testclient import TestClient
 
     app, engine = app_and_engine
@@ -407,7 +343,7 @@ def test_project_publication_post_pages_display_language_content_with_fallback(a
         )
         session.commit()
 
-    client = TestClient(app)
+    client = TestClient(app, follow_redirects=False)
 
     projects_ko = client.get("/projects?lang=kr")
     assert projects_ko.status_code == 200
@@ -862,14 +798,8 @@ def test_public_pages_render_search_metadata_for_configured_domain(
     ) in body
     assert '<meta name="robots" content="index,follow" />' in body
     assert '<link rel="canonical" href="https://lab.example.test/?lang=en" />' in body
-    assert (
-        '<link rel="alternate" hreflang="ko" href="https://lab.example.test/?lang=kr" />'
-        in body
-    )
-    assert (
-        '<link rel="alternate" hreflang="en" href="https://lab.example.test/?lang=en" />'
-        in body
-    )
+    assert '<link rel="alternate" hreflang="ko" href="https://lab.example.test/?lang=kr" />' in body
+    assert '<link rel="alternate" hreflang="en" href="https://lab.example.test/?lang=en" />' in body
     assert '<meta name="google-site-verification" content="verify-token" />' in body
 
 
@@ -1098,12 +1028,10 @@ def test_sitemap_xml_includes_hreflang_alternates(monkeypatch: pytest.MonkeyPatc
     assert status_code == 200
     assert 'xmlns:xhtml="http://www.w3.org/1999/xhtml"' in body
     assert (
-        '<xhtml:link rel="alternate" hreflang="ko" '
-        'href="https://lab.example.test/?lang=kr" />'
+        '<xhtml:link rel="alternate" hreflang="ko" href="https://lab.example.test/?lang=kr" />'
     ) in body
     assert (
-        '<xhtml:link rel="alternate" hreflang="en" '
-        'href="https://lab.example.test/?lang=en" />'
+        '<xhtml:link rel="alternate" hreflang="en" href="https://lab.example.test/?lang=en" />'
     ) in body
     assert (
         '<xhtml:link rel="alternate" hreflang="x-default" '
@@ -1126,8 +1054,7 @@ def test_home_page_renders_og_image_locale_and_organization_jsonld(
 
     assert status_code == 200
     assert (
-        '<meta property="og:image" '
-        'content="https://lab.example.test/static/images/hero.jpg" />'
+        '<meta property="og:image" content="https://lab.example.test/static/images/hero.jpg" />'
     ) in body
     assert '<meta property="og:locale" content="ko_KR" />' in body
     assert '<meta name="twitter:card" content="summary_large_image" />' in body
@@ -1227,9 +1154,7 @@ def test_home_jsonld_scripts_are_valid_json(app_and_engine):
     status_code, _, body = _request(app, "GET", "/?lang=kr")
 
     assert status_code == 200
-    scripts = re.findall(
-        r'<script type="application/ld\+json">(.*?)</script>', body, re.DOTALL
-    )
+    scripts = re.findall(r'<script type="application/ld\+json">(.*?)</script>', body, re.DOTALL)
     assert scripts
     for script in scripts:
         data = json.loads(script)

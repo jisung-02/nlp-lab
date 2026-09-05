@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlmodel import Session
 
 from app.models.project import Project
@@ -27,30 +27,19 @@ def parse_project_create_input(
 ) -> ProjectCreateInput | None:
     """Return validated create payload or ``None``."""
 
-    fallback_title = title_en.strip() if isinstance(title_en, str) else ""
-    fallback_summary = summary_en.strip() if isinstance(summary_en, str) else ""
-    fallback_description = description_en.strip() if isinstance(description_en, str) else ""
-    resolved_title = title.strip() or fallback_title
-    resolved_summary = summary.strip() or fallback_summary
-    resolved_description = description.strip() or fallback_description
-
-    try:
-        return ProjectCreateInput.model_validate(
-            {
-                "title": resolved_title,
-                "title_en": title_en,
-                "slug": slug,
-                "summary": resolved_summary,
-                "summary_en": summary_en,
-                "description": resolved_description,
-                "description_en": description_en,
-                "status": status,
-                "start_date": start_date,
-                "end_date": end_date,
-            }
-        )
-    except ValidationError:
-        return None
+    return _parse_project_input(
+        ProjectCreateInput,
+        title=title,
+        title_en=title_en,
+        slug=slug,
+        summary=summary,
+        summary_en=summary_en,
+        description=description,
+        description_en=description_en,
+        status=status,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
 
 def parse_project_update_input(
@@ -68,22 +57,47 @@ def parse_project_update_input(
 ) -> ProjectUpdateInput | None:
     """Return validated update payload or ``None``."""
 
+    return _parse_project_input(
+        ProjectUpdateInput,
+        title=title,
+        title_en=title_en,
+        slug=slug,
+        summary=summary,
+        summary_en=summary_en,
+        description=description,
+        description_en=description_en,
+        status=status,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
+def _parse_project_input[TInputModel: BaseModel](
+    model_class: type[TInputModel],
+    *,
+    title: str,
+    title_en: str | None,
+    slug: str,
+    summary: str,
+    summary_en: str | None,
+    description: str,
+    description_en: str | None,
+    status: str,
+    start_date: str,
+    end_date: str | None,
+) -> TInputModel | None:
     fallback_title = title_en.strip() if isinstance(title_en, str) else ""
     fallback_summary = summary_en.strip() if isinstance(summary_en, str) else ""
     fallback_description = description_en.strip() if isinstance(description_en, str) else ""
-    resolved_title = title.strip() or fallback_title
-    resolved_summary = summary.strip() or fallback_summary
-    resolved_description = description.strip() or fallback_description
-
     try:
-        return ProjectUpdateInput.model_validate(
+        return model_class.model_validate(
             {
-                "title": resolved_title,
+                "title": title.strip() or fallback_title,
                 "title_en": title_en,
                 "slug": slug,
-                "summary": resolved_summary,
+                "summary": summary.strip() or fallback_summary,
                 "summary_en": summary_en,
-                "description": resolved_description,
+                "description": description.strip() or fallback_description,
                 "description_en": description_en,
                 "status": status,
                 "start_date": start_date,

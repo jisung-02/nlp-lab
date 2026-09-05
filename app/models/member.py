@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy import Column, DateTime, Index, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlmodel import Field, SQLModel
 
@@ -15,6 +15,7 @@ class Member(SQLModel, table=True):
     """Lab member profile table."""
 
     __tablename__ = "member"
+    __table_args__ = (Index("ix_member_display_created", "display_order", "created_at"),)
 
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(sa_column=Column(String(100), nullable=False))

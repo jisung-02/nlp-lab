@@ -22,6 +22,7 @@ from app.services.auth_service import (
     login_admin,
     logout_admin,
     parse_login_input,
+    require_admin,
     validate_or_raise_csrf,
 )
 
@@ -66,18 +67,22 @@ def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
-    login_admin(request, admin_user)
+    login_admin(request, admin_user, session)
     return RedirectResponse(url="/admin", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/logout")
-def logout(request: Request, csrf_token: Annotated[str, Form()]):
+def logout(
+    request: Request,
+    csrf_token: Annotated[str, Form()],
+    session: Annotated[Session, Depends(get_session)],
+):
     validate_or_raise_csrf(request, csrf_token)
-    logout_admin(request)
+    logout_admin(request, session)
     return RedirectResponse(url="/admin/login", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@router.get("")
+@router.get("", dependencies=[Depends(require_admin)])
 def dashboard(request: Request, session: Annotated[Session, Depends(get_session)]):
     csrf_token = get_or_create_csrf_token(request)
     member_count = _count_rows(session, Member)

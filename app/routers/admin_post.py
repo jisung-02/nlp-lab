@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
+import fcntl
+import os
 import re
+import shutil
 from collections.abc import Sequence
+from contextlib import contextmanager
+from contextvars import ContextVar
+from functools import wraps
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Annotated, cast
 from uuid import uuid4
 
@@ -19,7 +26,7 @@ from app.models.post import Post
 from app.repositories import post_repo
 from app.services import post_service
 from app.services.auth_service import get_or_create_csrf_token, validate_or_raise_csrf
-from app.services.image_service import optimize_image_bytes
+from app.services.image_service import ImageTooLargeError, optimize_image_bytes
 
 router = APIRouter(prefix="/admin/posts")
 
@@ -38,12 +45,73 @@ _HERO_IMAGE_WEB_PREFIX = f"{_HERO_IMAGE_WEB_PATH}/"
 _HERO_IMAGE_DEFAULT_URL = f"{_HERO_IMAGE_WEB_PATH}/hero.jpg"
 
 
+# Keep rollback copies on disk, and only for files this edit touches.
+_hero_file_backups: ContextVar[tuple[Path, dict[Path, Path | None]] | None] = ContextVar(
+    "hero_file_backups", default=None
+)
+
+
+def _remember_hero_file(path: Path) -> None:
+    state = _hero_file_backups.get()
+    if state is None:
+        return
+    directory, backups = state
+    if path in backups:
+        return
+    backup = directory / str(len(backups)) if path.exists() else None
+    if backup is not None:
+        shutil.copy2(path, backup)
+    backups[path] = backup
+
+
+@contextmanager
+def _lock_hero_directory():
+    """Serialize file edits across workers so rollback cannot overwrite another edit."""
+    _HERO_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+    descriptor = os.open(_HERO_IMAGE_DIR, os.O_RDONLY)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(descriptor)
+
+
+def _transactional_hero_files(function):
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+        if _hero_file_backups.get() is not None:
+            return function(*args, **kwargs)
+        with _lock_hero_directory(), TemporaryDirectory(prefix="nlp-hero-edit-") as directory:
+            backups: dict[Path, Path | None] = {}
+            token = _hero_file_backups.set((Path(directory), backups))
+            succeeded = False
+            try:
+                result = function(*args, **kwargs)
+                succeeded = (
+                    result[1] is None if isinstance(result, tuple) else result.status_code < 400
+                )
+                return result
+            finally:
+                try:
+                    if not succeeded:
+                        for path, backup in backups.items():
+                            if backup is None:
+                                path.unlink(missing_ok=True)
+                            else:
+                                shutil.copy2(backup, path)
+                finally:
+                    _hero_file_backups.reset(token)
+
+    return wrapped
+
+
 @router.get("")
 def posts_page(request: Request, session: Annotated[Session, Depends(get_session)]):
     return _render_posts_page(request, session)
 
 
 @router.post("")
+@_transactional_hero_files
 def create_post(
     request: Request,
     session: Annotated[Session, Depends(get_session)],
@@ -109,6 +177,7 @@ def create_post(
 
 
 @router.post("/{id}/update")
+@_transactional_hero_files
 def update_post(
     request: Request,
     id: int,
@@ -209,11 +278,15 @@ def _render_posts_page(
     hero_image_urls = post_service.parse_home_hero_image_urls(
         hero_image_post.content if hero_image_post is not None else None
     )
-    display_hero_image_urls = _sync_missing_home_hero_image_urls(
-        session=session,
-        hero_image_post=hero_image_post,
-        hero_image_urls=hero_image_urls,
-        default_hero_image_url=default_hero_image_url,
+    display_hero_image_urls = (
+        hero_image_urls
+        if status_code >= 400
+        else _sync_missing_home_hero_image_urls(
+            session=session,
+            hero_image_post=hero_image_post,
+            hero_image_urls=hero_image_urls,
+            default_hero_image_url=default_hero_image_url,
+        )
     )
     if not display_hero_image_urls:
         display_hero_image_urls = [default_hero_image_url]
@@ -241,6 +314,7 @@ def _render_posts_page(
     )
 
 
+@_transactional_hero_files
 def _resolve_home_hero_content(
     *,
     request: Request,
@@ -252,8 +326,6 @@ def _resolve_home_hero_content(
 ) -> tuple[str, str | None]:
     default_hero_image_url = request.url_for("static", path="images/hero/hero.jpg").path
     raw_lines = [line.strip() for line in raw_content.splitlines() if line.strip()]
-    if raw_content and not raw_lines and raw_content.strip():
-        raw_lines = [raw_content.strip()]
     if any(line.lower().startswith(_UNSUPPORTED_HERO_IMAGE_SCHEMES) for line in raw_lines):
         return (
             "",
@@ -374,7 +446,7 @@ def _save_hero_image_files(
                 _cleanup_hero_image_files(saved_paths)
                 return [], "JPG, JPEG, PNG, WebP, GIF 형식의 이미지만 허용합니다."
 
-            content = hero_image_file.file.read()
+            content = hero_image_file.file.read(_MAX_HERO_IMAGE_BYTES + 1)
             if len(content) == 0:
                 _cleanup_hero_image_files(saved_paths)
                 return [], "빈 이미지 파일은 업로드할 수 없습니다."
@@ -386,11 +458,15 @@ def _save_hero_image_files(
 
             file_name = _make_unique_hero_image_filename(hero_image_file.filename)
             target_path = _HERO_IMAGE_DIR / file_name
+            _remember_hero_file(target_path)
             target_path.write_bytes(content)
             saved_paths.append(target_path)
             saved_urls.append(f"{_HERO_IMAGE_WEB_PATH}/{file_name}")
 
         return saved_urls, None
+    except ImageTooLargeError as error:
+        _cleanup_hero_image_files(saved_paths)
+        return [], str(error)
     except OSError:
         _cleanup_hero_image_files(saved_paths)
         return [], "이미지 업로드 중 오류가 발생했습니다. 다시 시도해주세요."
@@ -514,6 +590,7 @@ def _delete_hero_image_files(hero_image_urls: Sequence[str]) -> None:
         target_path = _HERO_IMAGE_DIR / file_name
         if target_path.is_file():
             try:
+                _remember_hero_file(target_path)
                 target_path.unlink()
             except OSError:
                 pass
@@ -563,6 +640,8 @@ def _rename_hero_image_file(old_url: str, new_name: str) -> tuple[str, str | Non
         target_path = _HERO_IMAGE_DIR / target_filename
 
     try:
+        _remember_hero_file(old_path)
+        _remember_hero_file(target_path)
         old_path.replace(target_path)
     except OSError:
         return "", "이미지 이름 변경 중 오류가 발생했습니다. 다시 시도해주세요."

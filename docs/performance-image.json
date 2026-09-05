@@ -1,0 +1,22 @@
+{
+  "working-tree": {
+    "elapsed_ms": 99.164,
+    "output_bytes": 10577,
+    "dimensions": [
+      1600,
+      1067
+    ],
+    "format": "JPEG",
+    "rss_mib": 70.98
+  },
+  "HEAD": {
+    "elapsed_ms": 274.658,
+    "output_bytes": 10577,
+    "dimensions": [
+      1600,
+      1067
+    ],
+    "format": "JPEG",
+    "rss_mib": 244.2
+  }
+}

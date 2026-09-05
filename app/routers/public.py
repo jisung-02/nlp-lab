@@ -10,6 +10,7 @@ from xml.sax.saxutils import escape as xml_escape
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import QueryableAttribute, defer
 from sqlmodel import Session, col, select
 
 from app.core.config import get_settings
@@ -195,7 +196,13 @@ def home(
     hero_images = post_service.get_home_hero_image_urls(session)
     hero_image_urls = hero_images if hero_images else [default_hero_image_url]
     latest_projects = session.exec(
-        select(Project).order_by(col(Project.created_at).desc()).limit(3)
+        select(Project)
+        .options(
+            defer(cast(QueryableAttribute, Project.description), raiseload=True),
+            defer(cast(QueryableAttribute, Project.description_en), raiseload=True),
+        )
+        .order_by(col(Project.created_at).desc())
+        .limit(3)
     ).all()
     latest_publications = session.exec(
         select(Publication)
@@ -211,6 +218,10 @@ def home(
     ).all()
     featured_members = session.exec(
         select(Member)
+        .options(
+            defer(cast(QueryableAttribute, Member.bio), raiseload=True),
+            defer(cast(QueryableAttribute, Member.bio_en), raiseload=True),
+        )
         .order_by(col(Member.display_order).asc(), col(Member.created_at).asc())
         .limit(8)
     ).all()
@@ -256,7 +267,10 @@ def projects_page(
     session: Annotated[Session, Depends(get_session)],
     status: Annotated[ProjectStatus | None, Query()] = None,
 ):
-    stmt = select(Project)
+    stmt = select(Project).options(
+        defer(cast(QueryableAttribute, Project.description), raiseload=True),
+        defer(cast(QueryableAttribute, Project.description_en), raiseload=True),
+    )
     if status is not None:
         stmt = stmt.where(col(Project.status) == status)
     projects = session.exec(stmt.order_by(col(Project.created_at).desc())).all()
@@ -338,7 +352,6 @@ def contact_page(request: Request):
             request,
             contact_email=settings.contact_email,
             contact_address=settings.contact_address,
-            contact_map_url=settings.contact_map_url,
         ),
     )
 
@@ -504,16 +517,18 @@ def sitemap_xml(
     request: Request,
     session: Annotated[Session, Depends(get_session)],
 ):
-    projects = session.exec(select(Project).order_by(col(Project.updated_at).desc())).all()
+    projects = session.exec(
+        select(Project.slug, Project.updated_at).order_by(col(Project.updated_at).desc())
+    ).all()
     sitemap_entries: list[tuple[str, str | None]] = [
         (path, None) for path in PUBLIC_STATIC_SITEMAP_PATHS
     ]
 
-    for project in projects:
+    for slug, updated_at in projects:
         sitemap_entries.append(
             (
-                f"/projects/{project.slug}",
-                _format_sitemap_lastmod(project.updated_at),
+                f"/projects/{slug}",
+                _format_sitemap_lastmod(updated_at),
             )
         )
 

@@ -31,7 +31,7 @@ Last updated: 2026-02-18
 - SQLModel >=0.0.22,<0.1
 - SQLAlchemy >=2.0.37,<2.1
 - Alembic >=1.14,<1.15
-- passlib[bcrypt] >=1.7.4,<1.8
+- bcrypt >=5,<6
 - python-multipart >=0.0.20,<0.1
 - pydantic-settings >=2.7,<2.8
 - ruff >=0.9,<1.0 / ty >=0.0.1,<0.1 / pytest >=8.3,<8.4

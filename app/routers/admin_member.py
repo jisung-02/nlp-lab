@@ -19,7 +19,7 @@ from app.core.constants import MemberRole
 from app.db.session import get_session
 from app.services import member_service
 from app.services.auth_service import get_or_create_csrf_token, validate_or_raise_csrf
-from app.services.image_service import optimize_image_bytes
+from app.services.image_service import ImageTooLargeError, optimize_image_bytes
 
 router = APIRouter(prefix="/admin/members")
 
@@ -241,13 +241,16 @@ def _save_member_photo_file(photo_file: UploadFile) -> tuple[str | None, str | N
     if file_ext not in _ALLOWED_MEMBER_PHOTO_EXTENSIONS:
         return None, "JPG, JPEG, PNG, WebP, GIF 형식의 이미지만 허용합니다."
 
-    content = photo_file.file.read()
+    content = photo_file.file.read(_MAX_MEMBER_PHOTO_BYTES + 1)
     if len(content) == 0:
         return None, "빈 이미지 파일은 업로드할 수 없습니다."
     if len(content) > _MAX_MEMBER_PHOTO_BYTES:
         return None, "이미지 파일 용량은 8MB를 초과할 수 없습니다."
 
-    content = optimize_image_bytes(content, max_dimension=_MEMBER_PHOTO_MAX_DIMENSION)
+    try:
+        content = optimize_image_bytes(content, max_dimension=_MEMBER_PHOTO_MAX_DIMENSION)
+    except ImageTooLargeError as error:
+        return None, str(error)
 
     _MEMBER_PHOTO_DIR.mkdir(parents=True, exist_ok=True)
     file_name = _make_unique_member_photo_filename(photo_file.filename)

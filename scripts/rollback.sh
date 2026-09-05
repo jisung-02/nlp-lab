@@ -8,7 +8,7 @@
 #   4. 라이브러리 재설치
 #   5. 서비스 시작 및 동작 확인
 #
-# deploy.sh가 남긴 .deploy/previous_commit, .deploy/last_backup 을 사용합니다.
+# deploy.sh가 남긴 .deploy/rollback-state를 사용합니다.
 
 set -euo pipefail
 
@@ -53,12 +53,28 @@ has_systemd() {
   [ "$APP_ENV" = "production" ] && command -v systemctl >/dev/null 2>&1
 }
 
-[ -f "$DEPLOY_STATE_DIR/previous_commit" ] \
-  || fail "되돌릴 배포 기록(.deploy/previous_commit)이 없습니다. 'uv run poe deploy'를 한 번 이상 실행한 뒤에만 사용할 수 있습니다."
-PREVIOUS_COMMIT="$(cat "$DEPLOY_STATE_DIR/previous_commit")"
+mkdir -p "$DEPLOY_STATE_DIR"
+mkdir "$DEPLOY_STATE_DIR/lock" 2>/dev/null || fail "다른 배포 또는 롤백이 진행 중입니다."
+trap 'rmdir "$DEPLOY_STATE_DIR/lock"' EXIT
+
+DEPLOY_BRANCH="main"
 LAST_BACKUP=""
-if [ -f "$DEPLOY_STATE_DIR/last_backup" ]; then
-  LAST_BACKUP="$(cat "$DEPLOY_STATE_DIR/last_backup")"
+if [ -f "$DEPLOY_STATE_DIR/rollback-state" ]; then
+  {
+    IFS= read -r PREVIOUS_COMMIT
+    IFS= read -r DEPLOY_BRANCH
+    IFS= read -r LAST_BACKUP
+  } < "$DEPLOY_STATE_DIR/rollback-state"
+else
+  # Accept records left by earlier deployments.
+  [ -f "$DEPLOY_STATE_DIR/previous_commit" ] || fail "되돌릴 배포 기록(previous_commit)이 없습니다."
+  PREVIOUS_COMMIT="$(cat "$DEPLOY_STATE_DIR/previous_commit")"
+  if [ -f "$DEPLOY_STATE_DIR/branch" ]; then DEPLOY_BRANCH="$(cat "$DEPLOY_STATE_DIR/branch")"; fi
+  if [ -f "$DEPLOY_STATE_DIR/last_backup" ]; then LAST_BACKUP="$(cat "$DEPLOY_STATE_DIR/last_backup")"; fi
+fi
+[ -n "$PREVIOUS_COMMIT" ] && [ -n "$DEPLOY_BRANCH" ] || fail "롤백 기록이 올바르지 않습니다."
+if [ -n "$LAST_BACKUP" ]; then
+  [ -f "$LAST_BACKUP" ] || fail "백업 파일이 없습니다: $LAST_BACKUP"
 fi
 
 echo "되돌릴 커밋 : $PREVIOUS_COMMIT"
@@ -78,10 +94,6 @@ if [ "${SKIP_GIT_PULL:-0}" = "1" ]; then
   echo "SKIP_GIT_PULL=1 → 건너뜀"
 else
   # 브랜치를 유지한 채 되돌려야 다음 'poe deploy'의 git pull이 정상 동작한다.
-  DEPLOY_BRANCH="main"
-  if [ -f "$DEPLOY_STATE_DIR/branch" ]; then
-    DEPLOY_BRANCH="$(cat "$DEPLOY_STATE_DIR/branch")"
-  fi
   git checkout --force "$DEPLOY_BRANCH" || fail "브랜치 $DEPLOY_BRANCH 로 전환하지 못했습니다."
   git reset --hard "$PREVIOUS_COMMIT" || fail "코드를 되돌리지 못했습니다."
   echo "현재 버전: $(git rev-parse --short HEAD)  ($(git log -1 --format=%s))"

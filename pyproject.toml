@@ -11,7 +11,7 @@ dependencies = [
   "sqlmodel>=0.0.22,<0.1",
   "sqlalchemy>=2.0.37,<2.1",
   "alembic>=1.14,<1.15",
-  "passlib[bcrypt]>=1.7.4,<1.8",
+  "bcrypt>=5,<6",
   "python-multipart>=0.0.20,<0.1",
   "pydantic-settings>=2.7,<2.8",
   "pillow>=12.3.0",
@@ -23,6 +23,7 @@ dev = [
   "ruff>=0.9,<1.0",
   "ty>=0.0.1,<0.1",
   "pytest>=8.3,<8.4",
+  "httpx>=0.28,<0.29",
 ]
 
 [tool.ruff]
@@ -40,7 +41,8 @@ addopts = "-q"
 env = { UV_CACHE_DIR = ".uv-cache" }
 
 [tool.poe.tasks]
-serve = "uvicorn app.main:app --reload"
+serve = ["backup-db", "migrate", "init-admin", "_serve"]
+_serve = "uvicorn app.main:app --reload"
 serve-https = "bash scripts/serve_https.sh"
 deploy = "bash scripts/deploy.sh"
 rollback = "bash scripts/rollback.sh"

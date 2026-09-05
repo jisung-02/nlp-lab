@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -18,6 +18,7 @@ from app.services.auth_service import (
     SESSION_ADMIN_USER_ID_KEY,
     decode_session_cookie,
     encode_session_cookie,
+    require_admin,
 )
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -113,10 +114,10 @@ def create_app() -> FastAPI:
     app.state.templates = templates
     app.include_router(public_router)
     app.include_router(admin_auth_router)
-    app.include_router(admin_member_router)
-    app.include_router(admin_project_router)
-    app.include_router(admin_publication_router)
-    app.include_router(admin_post_router)
+    app.include_router(admin_member_router, dependencies=[Depends(require_admin)])
+    app.include_router(admin_project_router, dependencies=[Depends(require_admin)])
+    app.include_router(admin_publication_router, dependencies=[Depends(require_admin)])
+    app.include_router(admin_post_router, dependencies=[Depends(require_admin)])
     return app
 
 

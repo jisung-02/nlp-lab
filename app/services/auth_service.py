@@ -7,14 +7,19 @@ import hashlib
 import hmac
 import json
 import secrets
+import time
 from hmac import compare_digest
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import HTTPException, Request
+from fastapi import Depends, HTTPException, Request
 from pydantic import ValidationError
+from sqlalchemy import delete
 from sqlmodel import Session, col, select
 
+from app.core.config import get_settings
 from app.core.security import verify_password
+from app.db.session import get_session
+from app.models.admin_session import AdminSession
 from app.models.admin_user import AdminUser
 from app.schemas.auth import AdminLoginInput, CsrfInput
 
@@ -28,6 +33,8 @@ def decode_session_cookie(secret_key: str, raw_cookie: str | None) -> dict[str, 
     if raw_cookie is None or "." not in raw_cookie:
         return {}
     encoded_payload, signature = raw_cookie.rsplit(".", 1)
+    if not signature.isascii() or not encoded_payload.isascii():
+        return {}
     if not compare_digest(_sign_payload(secret_key, encoded_payload), signature):
         return {}
     try:
@@ -38,12 +45,19 @@ def decode_session_cookie(secret_key: str, raw_cookie: str | None) -> dict[str, 
         return {}
     if not isinstance(data, dict):
         return {}
-    return {str(key): value for key, value in data.items()}
+    expires_at = data.get("expires_at")
+    if type(expires_at) is not int or expires_at <= time.time():
+        return {}
+    return data
 
 
 def encode_session_cookie(secret_key: str, session_data: dict[str, Any]) -> str:
     """Encode session dict and sign it for cookie storage."""
 
+    session_data = dict(session_data)
+    session_data.setdefault(
+        "expires_at", int(time.time()) + get_settings().admin_session_max_age_seconds
+    )
     raw_payload = json.dumps(session_data, separators=(",", ":"), sort_keys=True).encode("utf-8")
     encoded_payload = base64.urlsafe_b64encode(raw_payload).decode("utf-8").rstrip("=")
     signature = _sign_payload(secret_key, encoded_payload)
@@ -82,22 +96,66 @@ def authenticate_admin(session: Session, username: str, password: str) -> AdminU
 def get_authenticated_admin(request: Request, session: Session) -> AdminUser | None:
     """Return the currently authenticated admin from session."""
 
+    token = request.session.get("session_token")
     admin_user_id = request.session.get(SESSION_ADMIN_USER_ID_KEY)
-    if not isinstance(admin_user_id, int):
+    if not isinstance(token, str) or type(admin_user_id) is not int:
         return None
-    return session.get(AdminUser, admin_user_id)
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    row = session.exec(
+        select(AdminUser, AdminSession)
+        .join(AdminSession, col(AdminSession.admin_user_id) == col(AdminUser.id))
+        .where(col(AdminSession.token_hash) == token_hash)
+        .where(col(AdminSession.admin_user_id) == admin_user_id)
+        .where(col(AdminSession.expires_at) > int(time.time()))
+    ).first()
+    if row is None:
+        return None
+    admin, login_session = row
+    if login_session.credential_hash != hashlib.sha256(admin.password_hash.encode()).hexdigest():
+        return None
+    return admin
 
 
-def login_admin(request: Request, admin_user: AdminUser) -> None:
-    """Persist admin login state in session."""
+def require_admin(request: Request, session: Annotated[Session, Depends(get_session)]) -> AdminUser:
+    admin = get_authenticated_admin(request, session)
+    if admin is None:
+        request.session.clear()
+        raise HTTPException(status_code=303, headers={"Location": "/admin/login"})
+    return admin
 
-    request.session[SESSION_ADMIN_USER_ID_KEY] = admin_user.id
+
+def login_admin(request: Request, admin_user: AdminUser, session: Session) -> None:
+    """Issue a new database-backed session and discard any previous login token."""
+    logout_admin(request, session)
+    token = secrets.token_urlsafe(32)
+    expires_at = int(time.time()) + get_settings().admin_session_max_age_seconds
+    assert admin_user.id is not None
+    session.exec(delete(AdminSession).where(col(AdminSession.expires_at) <= int(time.time())))
+    session.add(
+        AdminSession(
+            token_hash=hashlib.sha256(token.encode()).hexdigest(),
+            admin_user_id=admin_user.id,
+            expires_at=expires_at,
+            credential_hash=hashlib.sha256(admin_user.password_hash.encode()).hexdigest(),
+        )
+    )
+    session.commit()
+    request.session.update(
+        {SESSION_ADMIN_USER_ID_KEY: admin_user.id, "session_token": token, "expires_at": expires_at}
+    )
     rotate_csrf_token(request)
 
 
-def logout_admin(request: Request) -> None:
-    """Clear the session for logout."""
-
+def logout_admin(request: Request, session: Session) -> None:
+    """Revoke the login token before clearing the browser session."""
+    token = request.session.get("session_token")
+    if isinstance(token, str):
+        session.exec(
+            delete(AdminSession).where(
+                col(AdminSession.token_hash) == hashlib.sha256(token.encode()).hexdigest()
+            )
+        )
+        session.commit()
     request.session.clear()
 
 

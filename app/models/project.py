@@ -3,7 +3,7 @@
 from datetime import date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, Date, DateTime, String
+from sqlalchemy import Column, Date, DateTime, Index, String
 from sqlalchemy import Enum as SAEnum
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -17,6 +17,7 @@ class Project(SQLModel, table=True):
     """Research project table."""
 
     __tablename__ = "project"
+    __table_args__ = (Index("ix_project_created", "created_at"),)
 
     id: int | None = Field(default=None, primary_key=True)
     title: str = Field(sa_column=Column(String(200), nullable=False))

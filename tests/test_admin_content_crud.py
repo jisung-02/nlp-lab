@@ -2,18 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
-import re
 from datetime import date
-from http.cookies import SimpleCookie
 from pathlib import Path
-from urllib.parse import urlencode
 
 import pytest
 from fastapi import FastAPI
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine, select
-from starlette.types import Message, Receive, Scope, Send
 
 from app.core.constants import HOME_HERO_IMAGE_POST_SLUG, ProjectStatus
 from app.core.security import hash_password
@@ -24,104 +19,18 @@ from app.models.post import Post
 from app.models.project import Project
 from app.models.publication import Publication
 from app.routers import admin_post
-
-
-def _header_value(headers: list[tuple[str, str]], name: str) -> str | None:
-    for key, value in headers:
-        if key.lower() == name.lower():
-            return value
-    return None
-
-
-def _update_cookie_jar(cookie_jar: dict[str, str], headers: list[tuple[str, str]]) -> None:
-    for key, value in headers:
-        if key.lower() != "set-cookie":
-            continue
-        parsed_cookie = SimpleCookie()
-        parsed_cookie.load(value)
-        for morsel in parsed_cookie.values():
-            cookie_jar[morsel.key] = morsel.value
-
-
-def _extract_csrf_token(body: str) -> str:
-    match = re.search(r'name="csrf_token" value="([^"]+)"', body)
-    assert match is not None
-    return match.group(1)
-
-
-def _request(
-    app: FastAPI,
-    method: str,
-    path: str,
-    *,
-    form: dict[str, str] | None = None,
-    cookies: dict[str, str] | None = None,
-) -> tuple[int, list[tuple[str, str]], str]:
-    headers: list[tuple[bytes, bytes]] = [(b"host", b"testserver")]
-    request_body = b""
-
-    if cookies:
-        cookie_header = "; ".join(f"{name}={value}" for name, value in cookies.items())
-        headers.append((b"cookie", cookie_header.encode("utf-8")))
-
-    if form is not None:
-        request_body = urlencode(form).encode("utf-8")
-        headers.extend(
-            [
-                (b"content-type", b"application/x-www-form-urlencoded"),
-                (b"content-length", str(len(request_body)).encode("utf-8")),
-            ]
-        )
-    else:
-        headers.append((b"content-length", b"0"))
-
-    scope: Scope = {
-        "type": "http",
-        "asgi": {"version": "3.0", "spec_version": "2.3"},
-        "http_version": "1.1",
-        "method": method.upper(),
-        "scheme": "http",
-        "path": path,
-        "raw_path": path.encode("utf-8"),
-        "query_string": b"",
-        "headers": headers,
-        "client": ("testclient", 50000),
-        "server": ("testserver", 80),
-        "root_path": "",
-    }
-
-    sent = False
-
-    async def receive() -> Message:
-        nonlocal sent
-        if sent:
-            return {"type": "http.request", "body": b"", "more_body": False}
-        sent = True
-        return {"type": "http.request", "body": request_body, "more_body": False}
-
-    messages: list[Message] = []
-
-    async def send(message: Message) -> None:
-        messages.append(message)
-
-    receive_fn: Receive = receive
-    send_fn: Send = send
-    asyncio.run(app(scope, receive_fn, send_fn))
-
-    status_code = 500
-    response_headers: list[tuple[str, str]] = []
-    body = b""
-    for message in messages:
-        if message["type"] == "http.response.start":
-            status_code = message["status"]
-            response_headers = [
-                (key.decode("latin-1"), value.decode("latin-1"))
-                for key, value in message.get("headers", [])
-            ]
-        if message["type"] == "http.response.body":
-            body += message.get("body", b"")
-
-    return status_code, response_headers, body.decode("utf-8", errors="ignore")
+from tests.helpers import (
+    extract_csrf_token as _extract_csrf_token,
+)
+from tests.helpers import (
+    header_value as _header_value,
+)
+from tests.helpers import (
+    request as _request,
+)
+from tests.helpers import (
+    update_cookie_jar as _update_cookie_jar,
+)
 
 
 @pytest.fixture
@@ -762,11 +671,10 @@ def test_home_hero_image_create_with_empty_content_uses_default(app_and_engine):
 
 
 def test_home_hero_image_upload_uses_uploaded_filename(app_and_engine):
-    pytest.importorskip("httpx")
     from fastapi.testclient import TestClient
 
     app, engine = app_and_engine
-    client = TestClient(app)
+    client = TestClient(app, follow_redirects=False)
 
     login_body = client.get("/admin/login").text
     login_csrf_token = _extract_csrf_token(login_body)
@@ -808,7 +716,7 @@ def test_home_hero_image_upload_uses_uploaded_filename(app_and_engine):
     with Session(engine) as session:
         hero_post = session.exec(select(Post).where(Post.slug == HOME_HERO_IMAGE_POST_SLUG)).first()
         assert hero_post is not None
-        assert hero_post.content == "/static/images/rename-able-name.png"
+        assert hero_post.content == "/static/images/hero/rename-able-name.png"
 
         image_path = (
             Path(__file__).resolve().parents[1] / "app/static/images/hero/rename-able-name.png"
@@ -818,11 +726,10 @@ def test_home_hero_image_upload_uses_uploaded_filename(app_and_engine):
 
 
 def test_home_hero_image_upload_keeps_fallback(app_and_engine):
-    pytest.importorskip("httpx")
     from fastapi.testclient import TestClient
 
     app, engine = app_and_engine
-    client = TestClient(app)
+    client = TestClient(app, follow_redirects=False)
 
     login_body = client.get("/admin/login").text
     login_csrf_token = _extract_csrf_token(login_body)
@@ -894,11 +801,10 @@ def test_home_hero_image_upload_keeps_fallback(app_and_engine):
 
 
 def test_home_hero_image_rename_uploaded_filename(app_and_engine):
-    pytest.importorskip("httpx")
     from fastapi.testclient import TestClient
 
     app, engine = app_and_engine
-    client = TestClient(app)
+    client = TestClient(app, follow_redirects=False)
 
     login_body = client.get("/admin/login").text
     login_csrf_token = _extract_csrf_token(login_body)
@@ -1118,11 +1024,10 @@ def test_home_hero_image_rename_rejects_default_path():
 
 
 def test_home_hero_image_create_with_upload(app_and_engine):
-    pytest.importorskip("httpx")
     from fastapi.testclient import TestClient
 
     app, engine = app_and_engine
-    client = TestClient(app)
+    client = TestClient(app, follow_redirects=False)
 
     login_body = client.get("/admin/login").text
     login_csrf_token = _extract_csrf_token(login_body)
@@ -1179,11 +1084,10 @@ def test_home_hero_image_create_with_upload(app_and_engine):
 
 
 def test_home_hero_image_delete_selected_image(app_and_engine):
-    pytest.importorskip("httpx")
     from fastapi.testclient import TestClient
 
     app, engine = app_and_engine
-    client = TestClient(app)
+    client = TestClient(app, follow_redirects=False)
 
     login_body = client.get("/admin/login").text
     login_csrf_token = _extract_csrf_token(login_body)
@@ -1268,7 +1172,7 @@ def test_home_hero_image_delete_selected_image(app_and_engine):
         data={
             "title": "홈 히어로 이미지",
             "slug": HOME_HERO_IMAGE_POST_SLUG,
-            "content": first_image_url,
+            "content": "\n".join(hero_urls),
             "is_published": "false",
             "csrf_token": posts_csrf_token,
             "hero_image_remove_urls": "/static/images/hero/delete-me-first.png",
@@ -1297,11 +1201,10 @@ def test_home_hero_image_delete_selected_image(app_and_engine):
 
 
 def test_home_hero_image_delete_all_images_uses_fallback(app_and_engine):
-    pytest.importorskip("httpx")
     from fastapi.testclient import TestClient
 
     app, engine = app_and_engine
-    client = TestClient(app)
+    client = TestClient(app, follow_redirects=False)
 
     login_body = client.get("/admin/login").text
     login_csrf_token = _extract_csrf_token(login_body)

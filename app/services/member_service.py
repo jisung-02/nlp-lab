@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlmodel import Session
 
 from app.models.member import Member
@@ -25,24 +25,17 @@ def parse_member_create_input(
 ) -> MemberCreateInput | None:
     """Return validated create payload or ``None``."""
 
-    fallback_name = name_en.strip() if isinstance(name_en, str) else ""
-    resolved_name = name.strip() or fallback_name
-
-    try:
-        return MemberCreateInput.model_validate(
-            {
-                "name": resolved_name,
-                "name_en": name_en,
-                "role": role,
-                "email": email,
-                "photo_url": photo_url,
-                "bio": bio,
-                "bio_en": bio_en,
-                "display_order": display_order,
-            }
-        )
-    except ValidationError:
-        return None
+    return _parse_member_input(
+        MemberCreateInput,
+        name=name,
+        name_en=name_en,
+        role=role,
+        email=email,
+        photo_url=photo_url,
+        bio=bio,
+        bio_en=bio_en,
+        display_order=display_order,
+    )
 
 
 def parse_member_update_input(
@@ -58,11 +51,36 @@ def parse_member_update_input(
 ) -> MemberUpdateInput | None:
     """Return validated update payload or ``None``."""
 
+    return _parse_member_input(
+        MemberUpdateInput,
+        name=name,
+        name_en=name_en,
+        role=role,
+        email=email,
+        photo_url=photo_url,
+        bio=bio,
+        bio_en=bio_en,
+        display_order=display_order,
+    )
+
+
+def _parse_member_input[TInputModel: BaseModel](
+    model_class: type[TInputModel],
+    *,
+    name: str,
+    name_en: str | None,
+    role: str,
+    email: str,
+    photo_url: str | None,
+    bio: str | None,
+    bio_en: str | None,
+    display_order: str,
+) -> TInputModel | None:
     fallback_name = name_en.strip() if isinstance(name_en, str) else ""
     resolved_name = name.strip() or fallback_name
 
     try:
-        return MemberUpdateInput.model_validate(
+        return model_class.model_validate(
             {
                 "name": resolved_name,
                 "name_en": name_en,

@@ -127,9 +127,9 @@ def test_deploy_runs_steps_in_safe_order_and_installs_service(tmp_path: Path) ->
     assert result.returncode == 0, result.stdout + result.stderr
     calls = _calls(log)
     order = [
-        "git pull --ff-only",
-        "uv sync",
         "uv run python -m app.db.maintenance backup",
+        "git pull --ff-only",
+        "uv sync --locked",
         "uv run python -m app.db.maintenance legacy-stamp-revision",
         "uv run alembic upgrade head",
         "uv run poe init-admin",
@@ -143,8 +143,11 @@ def test_deploy_runs_steps_in_safe_order_and_installs_service(tmp_path: Path) ->
     assert positions == sorted(positions)
     assert "uv run alembic stamp" not in "\n".join(calls)
     assert any(call.startswith("sudo tee") and call.endswith("nlp-lab.service") for call in calls)
-    assert (project / ".deploy" / "previous_commit").read_text().strip() == "abc1234"
-    assert (project / ".deploy" / "last_backup").read_text().strip() == "/srv/backups/nlp_lab-1.db"
+    assert (project / ".deploy" / "rollback-state").read_text().splitlines() == [
+        "abc1234",
+        "main",
+        "/srv/backups/nlp_lab-1.db",
+    ]
     assert "배포 완료" in result.stdout
 
 
@@ -307,3 +310,50 @@ def test_rollback_requires_a_previous_deploy(tmp_path: Path) -> None:
     assert result.returncode != 0
     assert "previous_commit" in result.stderr
     assert _calls(log) == []
+
+
+def test_failed_sync_keeps_matching_code_and_backup_checkpoint(tmp_path: Path):
+    project = _make_project(tmp_path)
+    log = _install_fakes(tmp_path, uv_fail_on="sync")
+    env = _build_env(tmp_path, log)
+    state = project / ".deploy"
+    state.mkdir()
+    (state / "rollback-state").write_text("older-commit\nmain\n/older-backup.db\n")
+    result = _run(project / "scripts/deploy.sh", project, env)
+    assert result.returncode != 0
+    assert (state / "rollback-state").read_text().splitlines() == [
+        "abc1234",
+        "main",
+        "/srv/backups/nlp_lab-1.db",
+    ]
+    calls = _calls(log)
+    assert calls.index("uv run python -m app.db.maintenance backup") < calls.index(
+        "git pull --ff-only"
+    )
+
+
+def test_dirty_tree_and_failed_backup_preserve_previous_checkpoint(tmp_path: Path):
+    project = _make_project(tmp_path)
+    log = _install_fakes(tmp_path, uv_fail_on="maintenance backup")
+    state = project / ".deploy"
+    state.mkdir()
+    previous = "older-commit\nmain\n/older-backup.db\n"
+    (state / "rollback-state").write_text(previous)
+    for dirty in (" M app/main.py", ""):
+        result = _run(
+            project / "scripts/deploy.sh", project, _build_env(tmp_path, log, GIT_DIRTY=dirty)
+        )
+        assert result.returncode != 0
+        assert (state / "rollback-state").read_text() == previous
+    assert "git pull --ff-only" not in _calls(log)
+
+
+def test_rollback_missing_backup_does_not_stop_service(tmp_path: Path):
+    project = _make_project(tmp_path)
+    log = _install_fakes(tmp_path)
+    state = project / ".deploy"
+    state.mkdir()
+    (state / "rollback-state").write_text("abc1234\nmain\n/missing-backup.db\n")
+    result = _run(project / "scripts/rollback.sh", project, _build_env(tmp_path, log))
+    assert result.returncode != 0
+    assert not any("systemctl stop" in call for call in _calls(log))

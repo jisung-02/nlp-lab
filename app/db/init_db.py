@@ -2,18 +2,12 @@
 
 from __future__ import annotations
 
-from sqlmodel import Session, SQLModel, select
+from sqlmodel import Session, select
 
 from app.core.config import get_settings
 from app.core.security import hash_password
 from app.db.session import engine
 from app.models import AdminUser
-
-
-def create_db_and_tables() -> None:
-    """Create all tables from SQLModel metadata."""
-
-    SQLModel.metadata.create_all(engine)
 
 
 def create_initial_admin() -> None:
@@ -34,10 +28,3 @@ def create_initial_admin() -> None:
         )
         session.add(admin_user)
         session.commit()
-
-
-def init_db() -> None:
-    """Initialize tables and seed admin data."""
-
-    create_db_and_tables()
-    create_initial_admin()

@@ -1,0 +1,138 @@
+{
+  "working-tree": [
+    {
+      "rows": 10,
+      "latency": {
+        "/": {
+          "median_ms": 2.516,
+          "p95_ms": 3.113
+        },
+        "/members": {
+          "median_ms": 1.465,
+          "p95_ms": 1.713
+        },
+        "/projects": {
+          "median_ms": 1.455,
+          "p95_ms": 1.727
+        },
+        "/publications": {
+          "median_ms": 1.496,
+          "p95_ms": 1.748
+        },
+        "/contact": {
+          "median_ms": 0.864,
+          "p95_ms": 0.972
+        },
+        "/projects/project-0": {
+          "median_ms": 1.424,
+          "p95_ms": 1.677
+        }
+      },
+      "rss_mib_min": 78.3,
+      "rss_mib_max": 78.38,
+      "rss_mib_delta": 0.08,
+      "requests": 120
+    },
+    {
+      "rows": 500,
+      "latency": {
+        "/": {
+          "median_ms": 2.336,
+          "p95_ms": 3.807
+        },
+        "/members": {
+          "median_ms": 10.044,
+          "p95_ms": 22.829
+        },
+        "/projects": {
+          "median_ms": 7.65,
+          "p95_ms": 25.732
+        },
+        "/publications": {
+          "median_ms": 6.722,
+          "p95_ms": 21.348
+        },
+        "/contact": {
+          "median_ms": 0.928,
+          "p95_ms": 1.183
+        },
+        "/projects/project-0": {
+          "median_ms": 1.451,
+          "p95_ms": 1.76
+        }
+      },
+      "rss_mib_min": 88.61,
+      "rss_mib_max": 88.66,
+      "rss_mib_delta": 0.05,
+      "requests": 120
+    }
+  ],
+  "HEAD": [
+    {
+      "rows": 10,
+      "latency": {
+        "/": {
+          "median_ms": 2.258,
+          "p95_ms": 2.903
+        },
+        "/members": {
+          "median_ms": 1.447,
+          "p95_ms": 2.244
+        },
+        "/projects": {
+          "median_ms": 1.389,
+          "p95_ms": 2.028
+        },
+        "/publications": {
+          "median_ms": 1.435,
+          "p95_ms": 1.717
+        },
+        "/contact": {
+          "median_ms": 0.811,
+          "p95_ms": 0.904
+        },
+        "/projects/project-0": {
+          "median_ms": 1.346,
+          "p95_ms": 1.57
+        }
+      },
+      "rss_mib_min": 78.27,
+      "rss_mib_max": 78.3,
+      "rss_mib_delta": 0.03,
+      "requests": 120
+    },
+    {
+      "rows": 500,
+      "latency": {
+        "/": {
+          "median_ms": 5.053,
+          "p95_ms": 5.751
+        },
+        "/members": {
+          "median_ms": 10.367,
+          "p95_ms": 25.724
+        },
+        "/projects": {
+          "median_ms": 8.84,
+          "p95_ms": 22.295
+        },
+        "/publications": {
+          "median_ms": 6.798,
+          "p95_ms": 25.015
+        },
+        "/contact": {
+          "median_ms": 0.934,
+          "p95_ms": 1.225
+        },
+        "/projects/project-0": {
+          "median_ms": 1.526,
+          "p95_ms": 1.84
+        }
+      },
+      "rss_mib_min": 98.67,
+      "rss_mib_max": 98.78,
+      "rss_mib_delta": 0.11,
+      "requests": 120
+    }
+  ]
+}
