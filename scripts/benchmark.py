@@ -225,21 +225,37 @@ def main() -> None:
     parser.add_argument(
         "--compare-head", action="store_true", help="also benchmark a temporary git archive of HEAD"
     )
+    parser.add_argument(
+        "--baseline-ref",
+        default="HEAD",
+        help="commit/ref to compare against when --compare-head is set",
+    )
     parser.add_argument("--json-out", type=Path, help="write benchmark results to this JSON file")
     args = parser.parse_args()
     targets = [("working-tree", args.target.resolve())]
     with tempfile.TemporaryDirectory(prefix="nlp-lab-head-") as archive_dir:
         if args.compare_head:
+            baseline_commit = subprocess.check_output(
+                [
+                    "git",
+                    "rev-parse",
+                    "--verify",
+                    "--end-of-options",
+                    f"{args.baseline_ref}^{{commit}}",
+                ],
+                cwd=args.target,
+                text=True,
+            ).strip()
             archive = Path(archive_dir) / "head.tar"
             subprocess.run(
-                ["git", "archive", "--format=tar", "HEAD", "-o", str(archive)],
+                ["git", "archive", "--format=tar", baseline_commit, "-o", str(archive)],
                 cwd=args.target,
                 check=True,
             )
             head = Path(archive_dir) / "src"
             head.mkdir()
             subprocess.run(["tar", "-xf", str(archive), "-C", str(head)], check=True)
-            targets.append(("HEAD", head))
+            targets.append((f"baseline:{baseline_commit}", head))
         results = {name: [run_target(path, rows) for rows in args.rows] for name, path in targets}
         rendered = json.dumps(results, indent=2) + "\n"
         if args.json_out:

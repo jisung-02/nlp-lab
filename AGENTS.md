@@ -44,6 +44,8 @@ Public:
 - `GET /projects/{slug}`
 - `GET /publications`
 - `GET /contact`
+- `GET|HEAD /robots.txt`, `/llms.txt`, `/sitemap.xml`, `/favicon.ico`
+- `GET|HEAD /googlef810f48826f17ab4.html` (Google Search Console 검증)
 
 Admin page:
 - `GET /admin/login`
@@ -74,13 +76,15 @@ Admin CRUD (POST only):
 - `Project`: slug unique, status enum, start/end date
 - `Publication`: year index, optional related_project_id(FK)
 - `Post`: slug unique, content, is_published default true
-- 관계: Project(1)-Publication(N) only
+- `AdminSession`: token_hash(PK), admin_user_id(FK), expires_at, credential_hash
+- 관계: Project(1)-Publication(N), AdminUser(1)-AdminSession(N)
 
 ### 2.5 보안 규칙
 - 비밀번호는 bcrypt 해시만 저장
 - `/admin*` 인증 필수(미인증 시 `/admin/login` 리다이렉트)
 - CSRF 토큰 검증(모든 admin POST)
 - 세션 쿠키: HttpOnly + SameSite=Lax + production에서 Secure
+- 관리자 세션은 DB에서 만료/폐기할 수 있으며, 로그아웃 시 토큰을 삭제하고 비밀번호 변경 시 credential hash 불일치로 기존 세션을 거부한다.
 
 ### 2.6 마이그레이션 규칙
 - 모델 변경 시 Alembic 마이그레이션 필수
@@ -88,6 +92,7 @@ Admin CRUD (POST only):
   1) `uv run alembic revision --autogenerate -m "message"`
   2) 수동 검토
   3) `uv run alembic upgrade head`
+- 현재 포함된 마이그레이션은 테이블·컬럼·인덱스를 추가한다. 향후 마이그레이션에는 삭제 작업도 들어갈 수 있으므로 적용 전 검토한다.
 
 ---
 

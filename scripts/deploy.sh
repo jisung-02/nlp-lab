@@ -5,14 +5,14 @@
 #   1. 코드 상태 확인
 #   2. DB 백업 및 롤백 지점 기록
 #   3. 코드 받기 및 라이브러리 설치
-#   4. DB 스키마 갱신     alembic upgrade head (추가만 하고 삭제하지 않음)
+#   4. DB 스키마 갱신     alembic upgrade head (검토된 마이그레이션 적용)
 #   5. 관리자 계정 확인   없을 때만 생성
 #   6. HTTPS 인증서 확인  없거나 만료가 가까우면 발급/갱신
 #   7. 서비스 재시작      systemd 유닛이 없으면 설치, 있으면 restart
 #   8. 동작 확인          https://127.0.0.1:<APP_PORT>/ 응답 확인
 #
 # 어느 단계에서든 실패하면 즉시 멈추고, 되돌리는 방법을 안내합니다.
-# DB는 2번에서 백업한 뒤에만 건드리며, 스키마 변경은 컬럼/테이블 추가만 합니다.
+# DB는 2번에서 백업한 뒤에 변경합니다. 각 마이그레이션의 변경 내용은 별도 검토합니다.
 
 set -euo pipefail
 
@@ -50,11 +50,11 @@ fail() {
   exit 1
 }
 
-can_run_privileged() {
+has_privilege_runner() {
   if [ "$(id -u)" -eq 0 ]; then
     return 0
   fi
-  if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+  if command -v sudo >/dev/null 2>&1; then
     return 0
   fi
   return 1
@@ -132,7 +132,7 @@ if [ "$APP_ENV" != "production" ]; then
   echo "APP_ENV=$APP_ENV → 개발 환경이라 건너뜀 (운영 서버는 .env에 APP_ENV=production)"
 else
   bash "$SCRIPT_DIR/ensure_https_cert.sh" || fail "HTTPS 인증서 준비에 실패했습니다. 80/443 포트 개방과 DNS 설정을 확인하세요."
-  if [ ! -f "$RENEWAL_HOOK_PATH" ] && can_run_privileged; then
+  if [ ! -f "$RENEWAL_HOOK_PATH" ] && has_privilege_runner; then
     echo "인증서 자동 갱신 후 서비스 재시작 훅 설치: $RENEWAL_HOOK_PATH"
     run_privileged mkdir -p "$RENEWAL_HOOK_DIR"
     printf '#!/usr/bin/env bash\nsystemctl restart %s.service\n' "$SERVICE_NAME" \
@@ -153,7 +153,7 @@ fi
 if ! command -v systemctl >/dev/null 2>&1; then
   fail "systemd가 없는 환경입니다. 서비스는 직접 재시작하세요: uv run poe serve-https"
 fi
-if ! can_run_privileged; then
+if ! has_privilege_runner; then
   fail "서비스 재시작에는 root 또는 비밀번호 없는 sudo가 필요합니다. README의 sudoers 설정을 확인하세요."
 fi
 

@@ -152,9 +152,8 @@ def test_ensure_https_cert_bootstraps_certbot_on_ubuntu(tmp_path: Path) -> None:
     _write_executable(
         tmp_path / "bin" / "sudo",
         """#!/usr/bin/env bash
-        if [ "$1" = "-n" ] && [ "$2" = "true" ]; then
-          exit 0
-        fi
+        if [ "$1" = "-n" ]; then shift; fi
+        if [ "$1" = "true" ]; then exit 1; fi
         "$@"
         """,
     )

@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import runpy
 import sqlite3
 from datetime import datetime
 from pathlib import Path
 
 import pytest
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
+from sqlalchemy import create_engine
 
 from app.db import maintenance
 
@@ -12,22 +16,25 @@ ALEMBIC_VERSIONS_DIR = Path(__file__).resolve().parent.parent / "alembic" / "ver
 
 
 def _create_legacy_schema(path: Path, *, with_member_en: bool, with_project_en: bool) -> None:
+    revisions = ["8bb452b5f586"]
+    if with_member_en:
+        revisions.append("ce87631b7c22")
+    if with_project_en:
+        revisions.append("4b08cbb499e2")
+    engine = create_engine(f"sqlite:///{path}")
+    try:
+        with engine.begin() as connection:
+            with Operations.context(MigrationContext.configure(connection)):
+                for revision in revisions:
+                    migration = next(ALEMBIC_VERSIONS_DIR.glob(f"{revision}_*.py"))
+                    runpy.run_path(str(migration))["upgrade"]()
+    finally:
+        engine.dispose()
     with sqlite3.connect(path) as connection:
-        connection.executescript(
-            """
-            CREATE TABLE admin_user (id INTEGER PRIMARY KEY, username TEXT);
-            CREATE TABLE member (id INTEGER PRIMARY KEY, name TEXT);
-            CREATE TABLE project (id INTEGER PRIMARY KEY, title TEXT);
-            CREATE TABLE publication (id INTEGER PRIMARY KEY, title TEXT);
-            CREATE TABLE post (id INTEGER PRIMARY KEY, title TEXT);
-            INSERT INTO member (name) VALUES ('kept');
-            """
+        connection.execute(
+            "INSERT INTO member (name, role, email, display_order, created_at, updated_at) "
+            "VALUES ('kept', 'master', 'kept@example.test', 100, '2026-01-01', '2026-01-01')"
         )
-        if with_member_en:
-            connection.execute("ALTER TABLE member ADD COLUMN name_en TEXT")
-        if with_project_en:
-            connection.execute("ALTER TABLE project ADD COLUMN title_en TEXT")
-            connection.execute("ALTER TABLE post ADD COLUMN title_en TEXT")
 
 
 def _member_names(path: Path) -> list[str]:
@@ -70,7 +77,7 @@ def test_backup_is_consistent_while_database_is_in_wal_mode(tmp_path: Path):
     _create_legacy_schema(db_path, with_member_en=True, with_project_en=True)
     writer = sqlite3.connect(db_path)
     writer.execute("PRAGMA journal_mode=WAL")
-    writer.execute("INSERT INTO member (name) VALUES ('in-wal')")
+    writer.execute("UPDATE member SET name = 'in-wal'")
     writer.commit()
 
     try:
@@ -78,7 +85,7 @@ def test_backup_is_consistent_while_database_is_in_wal_mode(tmp_path: Path):
     finally:
         writer.close()
 
-    assert _member_names(backup_path) == ["kept", "in-wal"]
+    assert _member_names(backup_path) == ["in-wal"]
 
 
 def test_restore_replaces_database_and_keeps_safety_copy(tmp_path: Path):
@@ -87,14 +94,14 @@ def test_restore_replaces_database_and_keeps_safety_copy(tmp_path: Path):
     _create_legacy_schema(db_path, with_member_en=True, with_project_en=True)
     backup_path = maintenance.backup_database(db_path, backup_dir)
     with sqlite3.connect(db_path) as connection:
-        connection.execute("INSERT INTO member (name) VALUES ('after-backup')")
+        connection.execute("UPDATE member SET name = 'after-backup'")
     db_path.with_name("live.db-wal").write_bytes(b"stale")
 
     safety_copy = maintenance.restore_database(backup_path, db_path, backup_dir)
 
     assert _member_names(db_path) == ["kept"]
     assert safety_copy is not None and safety_copy.name.startswith("pre-rollback-")
-    assert _member_names(safety_copy) == ["kept", "after-backup"]
+    assert _member_names(safety_copy) == ["after-backup"]
     assert not db_path.with_name("live.db-wal").exists()
 
 
@@ -117,6 +124,7 @@ def test_legacy_stamp_revision_is_none_for_tracked_or_empty_databases(tmp_path: 
     _create_legacy_schema(tracked, with_member_en=True, with_project_en=True)
     with sqlite3.connect(tracked) as connection:
         connection.execute("CREATE TABLE alembic_version (version_num TEXT)")
+        connection.execute("INSERT INTO alembic_version VALUES ('4b08cbb499e2')")
     assert maintenance.legacy_stamp_revision(tracked) is None
 
     empty = tmp_path / "empty.db"
@@ -136,7 +144,7 @@ def test_legacy_stamp_revision_refuses_unknown_schema(tmp_path: Path):
 
 def test_legacy_revisions_exist_in_alembic_history():
     revision_files = {path.name.split("_", 1)[0] for path in ALEMBIC_VERSIONS_DIR.glob("*.py")}
-    for revision, _ in maintenance.LEGACY_SCHEMA_REVISIONS:
+    for revision in maintenance.LEGACY_SCHEMA_REVISIONS:
         assert revision in revision_files
 
 
@@ -160,3 +168,38 @@ def test_cli_backup_and_stamp_commands(tmp_path: Path, capsys):
     with sqlite3.connect(broken) as connection:
         connection.execute("CREATE TABLE post (id INTEGER PRIMARY KEY)")
     assert maintenance.main(["--database-url", f"sqlite:///{broken}", "legacy-stamp-revision"]) == 2
+
+
+def test_legacy_refuses_matching_table_names_with_unrelated_columns(tmp_path):
+    path = tmp_path / "unknown.db"
+    with sqlite3.connect(path) as connection:
+        for table in ("admin_user", "member", "project", "publication", "post"):
+            connection.execute(f"CREATE TABLE {table} (unrelated TEXT)")
+    with pytest.raises(maintenance.SchemaNotRecognisedError):
+        maintenance.legacy_stamp_revision(path)
+
+
+@pytest.mark.parametrize(
+    "alteration",
+    [
+        "ALTER TABLE member ADD COLUMN name_en VARCHAR(100)",
+        "DROP INDEX ix_publication_year",
+        "ALTER TABLE post DROP COLUMN content",
+        "CREATE TABLE unrelated (id INTEGER PRIMARY KEY)",
+    ],
+)
+def test_legacy_refuses_partial_or_modified_generations(tmp_path, alteration):
+    path = tmp_path / "partial.db"
+    _create_legacy_schema(path, with_member_en=False, with_project_en=False)
+    with sqlite3.connect(path) as connection:
+        connection.execute(alteration)
+    with pytest.raises(maintenance.SchemaNotRecognisedError):
+        maintenance.legacy_stamp_revision(path)
+
+
+def test_empty_alembic_table_does_not_hide_existing_schema(tmp_path):
+    path = tmp_path / "empty-version.db"
+    _create_legacy_schema(path, with_member_en=True, with_project_en=False)
+    with sqlite3.connect(path) as connection:
+        connection.execute("CREATE TABLE alembic_version (version_num TEXT)")
+    assert maintenance.legacy_stamp_revision(path) == "ce87631b7c22"

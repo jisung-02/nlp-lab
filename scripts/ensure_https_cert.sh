@@ -65,12 +65,12 @@ is_ubuntu() {
   return 1
 }
 
-can_run_privileged() {
+has_privilege_runner() {
   if [ "$(id -u)" -eq 0 ]; then
     return 0
   fi
 
-  if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+  if command -v sudo >/dev/null 2>&1; then
     return 0
   fi
 
@@ -83,8 +83,8 @@ run_privileged() {
     return
   fi
 
-  if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
-    sudo "$@"
+  if command -v sudo >/dev/null 2>&1; then
+    sudo -n "$@"
     return
   fi
 
@@ -127,7 +127,7 @@ install_certbot_for_ubuntu() {
   local snap_certbot_bin="${SNAP_CERTBOT_BIN:-/snap/bin/certbot}"
   local installed_snapd=0
 
-  if ! can_run_privileged; then
+  if ! has_privilege_runner; then
     echo "Certbot is missing, but automatic Ubuntu installation requires root or passwordless sudo." >&2
     exit 1
   fi

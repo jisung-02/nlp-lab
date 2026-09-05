@@ -67,7 +67,7 @@ def _install_fakes(tmp_path: Path, *, curl_status: str = "200", uv_fail_on: str 
         bin_dir / "sudo",
         """#!/usr/bin/env bash
         if [ "$1" = "-n" ]; then shift; fi
-        if [ "$1" = "true" ]; then exit 0; fi
+        if [ "$1" = "true" ]; then exit 1; fi
         echo "sudo $*" >> "$CALL_LOG"
         if [ "$1" = "tee" ]; then cat > /dev/null; fi
         exit 0
@@ -357,3 +357,26 @@ def test_rollback_missing_backup_does_not_stop_service(tmp_path: Path):
     result = _run(project / "scripts/rollback.sh", project, _build_env(tmp_path, log))
     assert result.returncode != 0
     assert not any("systemctl stop" in call for call in _calls(log))
+
+
+def test_deploy_stops_when_sudo_denies_required_command(tmp_path: Path):
+    project = _make_project(tmp_path)
+    log = _install_fakes(tmp_path)
+    _write_executable(tmp_path / "bin" / "id", "#!/bin/sh\necho 1000\n")
+    _write_executable(
+        tmp_path / "bin" / "sudo",
+        """#!/usr/bin/env bash
+        [ "$1" = "-n" ] || exit 9
+        shift
+        echo "sudo $*" >> "$CALL_LOG"
+        if [ "$1" = "true" ]; then exit 1; fi
+        if [ "$1" = "tee" ]; then cat >/dev/null; fi
+        if [ "$1" = "systemctl" ] && [ "$2" = "restart" ]; then exit 1; fi
+        exit 0
+        """,
+    )
+    result = _run(project / "scripts" / "deploy.sh", project, _build_env(tmp_path, log))
+    assert result.returncode != 0
+    assert "서비스 재시작에 실패" in result.stderr
+    assert "sudo true" not in _calls(log)
+    assert "curl" not in _calls(log)

@@ -1,7 +1,7 @@
 """Operational helpers used by ``scripts/deploy.sh`` and ``scripts/rollback.sh``.
 
-Everything here works on the SQLite file directly through the standard
-library so it stays usable even when the app itself fails to import.
+Backup and restore use SQLite directly. Legacy schema checks compare against
+the Alembic migrations without importing application models.
 
 Commands (``python -m app.db.maintenance <command>``):
 
@@ -21,26 +21,24 @@ Commands (``python -m app.db.maintenance <command>``):
 from __future__ import annotations
 
 import argparse
+import runpy
 import sqlite3
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
+from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_BACKUP_DIR = PROJECT_ROOT / "backups"
 DEFAULT_BACKUP_KEEP = 10
 
-# Newest first. Each entry lists columns that only exist once that
-# revision has been applied; the first entry whose columns are all
-# present is the revision an un-tracked database is effectively at.
-LEGACY_SCHEMA_REVISIONS: tuple[tuple[str, frozenset[tuple[str, str]]], ...] = (
-    ("4b08cbb499e2", frozenset({("project", "title_en"), ("post", "title_en")})),
-    ("ce87631b7c22", frozenset({("member", "name_en")})),
-    ("8bb452b5f586", frozenset()),
-)
-_BASE_TABLES = ("admin_user", "member", "project", "publication", "post")
+# Old schemas without an Alembic version must match a complete known generation.
+LEGACY_SCHEMA_REVISIONS = ("8bb452b5f586", "ce87631b7c22", "4b08cbb499e2")
 
 
 class SchemaNotRecognisedError(RuntimeError):
@@ -133,23 +131,60 @@ def legacy_stamp_revision(database_path: Path) -> str | None:
             for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
         }
         if "alembic_version" in tables:
+            if connection.execute("SELECT version_num FROM alembic_version").fetchone():
+                return None
+        actual_schema = _schema_signature(connection)
+        if not actual_schema:
             return None
-        if not any(table in tables for table in _BASE_TABLES):
-            return None
-        if not all(table in tables for table in _BASE_TABLES):
-            missing = sorted(set(_BASE_TABLES) - tables)
-            raise SchemaNotRecognisedError(f"missing tables: {', '.join(missing)}")
 
-        for revision, required_columns in LEGACY_SCHEMA_REVISIONS:
-            if all(_has_column(connection, table, column) for table, column in required_columns):
-                return revision
+    reference_engine = create_engine("sqlite://")
+    try:
+        with reference_engine.begin() as reference:
+            with Operations.context(MigrationContext.configure(reference)):
+                for revision in LEGACY_SCHEMA_REVISIONS:
+                    migration = next(
+                        (PROJECT_ROOT / "alembic" / "versions").glob(f"{revision}_*.py")
+                    )
+                    runpy.run_path(str(migration))["upgrade"]()
+                    if (
+                        _schema_signature(
+                            cast(sqlite3.Connection, reference.connection.driver_connection)
+                        )
+                        == actual_schema
+                    ):
+                        return revision
+    finally:
+        reference_engine.dispose()
+    raise SchemaNotRecognisedError("columns, keys or indexes do not match a known legacy schema")
 
-    raise SchemaNotRecognisedError("no known revision matches the existing schema")
 
-
-def _has_column(connection: sqlite3.Connection, table: str, column: str) -> bool:
-    rows = connection.execute(f'PRAGMA table_info("{table}")').fetchall()
-    return any(row[1] == column for row in rows)
+def _schema_signature(connection: sqlite3.Connection) -> dict:
+    """Compare column definitions, primary/unique keys, foreign keys and indexes."""
+    tables = [
+        row[0]
+        for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name NOT LIKE 'sqlite_%' AND name != 'alembic_version'"
+        )
+    ]
+    schema = {}
+    for table in tables:
+        quoted = table.replace('"', '""')
+        columns = tuple(
+            sorted(tuple(row[1:]) for row in connection.execute(f'PRAGMA table_info("{quoted}")'))
+        )
+        foreign_keys = tuple(
+            sorted(
+                tuple(row[2:]) for row in connection.execute(f'PRAGMA foreign_key_list("{quoted}")')
+            )
+        )
+        indexes = []
+        for row in connection.execute(f'PRAGMA index_list("{quoted}")'):
+            index = row[1].replace('"', '""')
+            fields = tuple(item[2] for item in connection.execute(f'PRAGMA index_info("{index}")'))
+            indexes.append((row[2], row[4], fields))
+        schema[table] = (columns, foreign_keys, tuple(sorted(indexes, key=repr)))
+    return schema
 
 
 def _copy_sqlite(source: Path, destination: Path) -> None:
